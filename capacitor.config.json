@@ -1,0 +1,11 @@
+{
+  "appId": "com.local.hrsystem",
+  "appName": "نظام الموارد البشرية",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
