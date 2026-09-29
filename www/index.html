@@ -1,0 +1,2035 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>نظام إدارة الموارد البشرية</title>
+<style>
+  :root{
+    --navy-900:#050b18; --navy-800:#0a1730; --navy-700:#0e2044; --navy-600:#14295a;
+    --line:#1c2f57; --text:#eaf0fb; --muted:#8ea0c7; --muted2:#5f7099;
+    --gold:#d4af37; --gold-l:#f2df9c;
+    --blue:#2f7bd1; --green:#2ea86a; --amber:#d9a72b; --purple:#8b5fd6;
+    --teal:#17a2a8; --red:#d9534f; --indigo:#5b6fd6;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:radial-gradient(1200px 800px at 80% -10%, #0e1e40 0%, var(--navy-900) 55%) fixed;
+    color:var(--text); font-family:"Segoe UI","Tahoma","Geeza Pro","Arial",sans-serif;
+    font-size:13.5px; line-height:1.5;
+  }
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--navy-600);border-radius:8px;}
+  button{font-family:inherit;cursor:pointer;}
+  mark.hl{background:var(--gold);color:#1a1300;padding:0 2px;border-radius:3px;font-weight:700;}
+
+  /* ---------- SPLASH SCREEN ---------- */
+  #splashScreen{
+    position:fixed; inset:0; z-index:9999; background:radial-gradient(1200px 800px at 50% 20%, #0e1e40 0%, var(--navy-900) 70%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; text-align:center; padding:20px;
+    transition:opacity .5s ease; 
+  }
+  #splashScreen.hide{ opacity:0; pointer-events:none; }
+  #splashScreen img{ max-width:220px; max-height:220px; filter:drop-shadow(0 0 18px rgba(212,175,55,.35)); }
+  #splashScreen .splash-emblem{ width:180px;height:180px; }
+  #splashScreen h1{ margin:0; color:var(--gold-l); font-size:22px; }
+  #splashScreen p{ margin:0; color:var(--muted); font-size:13px; }
+  .splash-bar-track{ width:260px; height:7px; border-radius:20px; background:var(--navy-700); border:1px solid var(--line); overflow:hidden; }
+  .splash-bar-fill{ height:100%; width:0%; background:linear-gradient(90deg,var(--gold),var(--gold-l)); transition:width linear; }
+  .splash-skip{ margin-top:6px; font-size:11.5px; color:var(--muted2); cursor:pointer; text-decoration:underline; }
+
+  .fs-btn{ background:var(--navy-700);border:1px solid var(--line);width:33px;height:33px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text); }
+
+  .app{display:flex;min-height:100vh;max-width:1680px;margin:0 auto;}
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar{
+    width:220px; flex:none; background:linear-gradient(180deg,var(--navy-800),var(--navy-900));
+    border-left:1px solid var(--line); display:flex; flex-direction:column; padding:16px 10px;
+    position:sticky; top:0; height:100vh; transition:width .2s, padding .2s; overflow:hidden;
+  }
+  .sidebar.collapsed{ width:0; padding:16px 0; border-left:none; }
+  .sidebar-toggle{
+    position:sticky; top:14px; align-self:flex-end; margin:0 6px 8px auto;
+    width:26px;height:26px;border-radius:50%;background:var(--navy-700);border:1px solid var(--line);
+    color:var(--gold-l);font-size:13px;display:flex;align-items:center;justify-content:center;flex:none;
+  }
+  .sidebar-toggle-outer{position:fixed;top:16px;right:16px;z-index:50;width:30px;height:30px;border-radius:50%;background:var(--navy-700);border:1px solid var(--gold);color:var(--gold-l);display:none;align-items:center;justify-content:center;font-size:13px;}
+  .sidebar.collapsed ~ .sidebar-toggle-outer, body.sb-collapsed .sidebar-toggle-outer{display:flex;}
+  .brand{display:flex;flex-direction:column;align-items:center;gap:6px;padding:2px 4px 14px;border-bottom:1px solid var(--line);margin-bottom:12px;white-space:nowrap;}
+  .brand .crest{font-size:30px;filter:drop-shadow(0 0 6px rgba(212,175,55,.5));}
+  .brand b{color:var(--gold-l);font-size:12.5px;text-align:center;}
+  .nav{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;flex:1;overflow-y:auto;white-space:nowrap;}
+  .nav li{list-style:none;}
+  .nav li span{
+    display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:10px;color:var(--muted);
+    font-size:13px;transition:.15s;cursor:pointer;user-select:none;
+  }
+  .nav li span:hover{background:var(--navy-700);color:var(--text);}
+  .nav li span.active{background:linear-gradient(90deg,var(--blue),#1e5aa8);color:#fff;font-weight:600;}
+  .nav li span .ic{width:16px;text-align:center;}
+  .logout{margin-top:10px;background:#3a1620;color:#ff9d9d;border:1px solid #5c2530;border-radius:10px;padding:9px;text-align:center;font-size:12.5px;cursor:pointer;user-select:none;white-space:nowrap;}
+
+  /* ---------- MAIN ---------- */
+  .main{flex:1;min-width:0;display:flex;flex-direction:column;}
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:10px 18px;background:linear-gradient(180deg,var(--navy-800),var(--navy-900));
+    border-bottom:1px solid var(--line);flex-wrap:wrap;position:sticky;top:0;z-index:20;
+  }
+  .who{display:flex;align-items:center;gap:9px;}
+  .who .av{width:34px;height:34px;border-radius:50%;background:var(--navy-600);display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid var(--gold);}
+  .who .name{font-weight:700;font-size:12.5px;}
+  .who .role{color:var(--muted);font-size:11px;}
+  .title-block{text-align:center;}
+  .title-block h1{margin:0;font-size:16px;color:var(--gold-l);}
+  .title-block p{margin:2px 0 0;color:var(--muted);font-size:11px;}
+  .clockbox{text-align:left;}
+  .clockbox .time{font-size:18px;font-weight:700;letter-spacing:1px;}
+  .clockbox .date{color:var(--muted);font-size:11px;}
+  .iconbtn{position:relative;background:var(--navy-700);border:1px solid var(--line);width:33px;height:33px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text);}
+  .iconbtn .badge{position:absolute;top:-6px;left:-6px;background:var(--red);color:#fff;font-size:10px;border-radius:20px;padding:1px 5px;font-weight:700;}
+  .topbar-right{display:flex;align-items:center;gap:8px;}
+
+  .view{display:none;padding:16px 18px;}
+  .view.active{display:block;}
+
+  /* ---------- STAT CARDS ---------- */
+  .stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:10px;margin-bottom:14px;}
+  .stat{border-radius:var(--radius);padding:12px;color:#fff;position:relative;overflow:hidden;box-shadow:0 6px 16px rgba(0,0,0,.35);cursor:pointer;border:2px solid transparent;transition:.15s;}
+  .stat:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(0,0,0,.45);}
+  .stat.active-cat{border-color:var(--gold);}
+  .stat .ic{font-size:18px;opacity:.9;}
+  .stat .num{font-size:21px;font-weight:800;margin-top:5px;}
+  .stat .lbl{font-size:11px;opacity:.9;}
+  .stat .chg{font-size:10px;margin-top:3px;opacity:.95;}
+  .stat.blue{background:linear-gradient(135deg,#2f7bd1,#173e6d);}
+  .stat.green{background:linear-gradient(135deg,#2ea86a,#154a30);}
+  .stat.amber{background:linear-gradient(135deg,#d9a72b,#6b5314);}
+  .stat.purple{background:linear-gradient(135deg,#8b5fd6,#402c66);}
+  .stat.teal{background:linear-gradient(135deg,#17a2a8,#0b464a);}
+  .stat.red{background:linear-gradient(135deg,#d9534f,#5c211f);}
+  .stat.indigo{background:linear-gradient(135deg,#5b6fd6,#292f66);}
+  .stat.addcard{background:var(--navy-800);border:1.5px dashed var(--line);display:flex;align-items:center;justify-content:center;flex-direction:column;color:var(--muted);box-shadow:none;}
+  .stat.addcard:hover{border-color:var(--gold);color:var(--gold-l);}
+  .stat.addcard .ic{font-size:22px;}
+
+  /* ---------- PANELS ---------- */
+  .grid2{display:grid;grid-template-columns:1fr 1.3fr;gap:12px;margin-bottom:14px;}
+  @media(max-width:1100px){.grid2{grid-template-columns:1fr;}}
+  .panel{background:linear-gradient(180deg,var(--navy-800),var(--navy-700));border:1px solid var(--line);border-radius:var(--radius);padding:13px;}
+  .panel h3{margin:0 0 10px;font-size:13.5px;color:var(--gold-l);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;}
+  .panel h3 span.tag{font-size:10.5px;background:#173a24;color:#7fe0a6;padding:2px 8px;border-radius:20px;}
+  .iconlink{background:none;border:none;color:var(--gold-l);font-size:16px;}
+
+  .donut-wrap{display:flex;align-items:center;gap:14px;}
+  .donut{width:135px;height:135px;border-radius:50%;flex:none;position:relative;display:flex;align-items:center;justify-content:center;}
+  .donut::after{content:'';position:absolute;width:78px;height:78px;background:var(--navy-800);border-radius:50%;}
+  .donut .center{position:relative;z-index:2;text-align:center;}
+  .donut .center b{font-size:18px;display:block;}
+  .donut .center small{color:var(--muted);font-size:9px;}
+  .legend{list-style:none;margin:0;padding:0;font-size:11.5px;flex:1;}
+  .legend li{display:flex;justify-content:space-between;padding:3px 0;color:var(--muted);}
+  .legend li .dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-left:6px;}
+  .legend li b{color:var(--text);}
+  .chartline{width:100%;height:190px;}
+
+  /* ---------- EXPLORER / node-grid (shared by dashboard + reports) ---------- */
+  .explorer-panel{margin-bottom:14px;}
+  .explorer-crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:2px;margin-bottom:10px;font-size:12px;}
+  .explorer-crumbs span{cursor:pointer;color:var(--muted);padding:2px 2px;}
+  .explorer-crumbs span:hover{color:var(--gold-l);}
+  .explorer-crumbs span.active{color:var(--gold-l);font-weight:700;cursor:default;}
+  .explorer-crumbs .sep{color:var(--muted2);cursor:default;}
+  .explorer-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+  .explorer-toolbar .btns{display:flex;gap:6px;flex-wrap:wrap;}
+  .btn-sm{background:var(--navy-600);border:1px solid var(--line);color:var(--text);padding:6px 11px;border-radius:8px;font-size:11.5px;}
+  .btn-sm:hover{border-color:var(--gold);}
+  .node-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:9px;}
+  .node-card{background:var(--navy-900);border:1px solid var(--line);border-radius:12px;padding:11px;text-align:center;cursor:pointer;transition:.15s;}
+  .node-card:hover{border-color:var(--gold);transform:translateY(-2px);}
+  .node-card .np{font-weight:800;font-size:17px;}
+  .node-card .nn{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .node-card .nc{font-size:10px;color:var(--muted2);margin-top:3px;}
+  .node-card.g{border-color:#1f7a45;} .node-card.g .np{color:#4ede8a;}
+  .node-card.t{border-color:#136d72;} .node-card.t .np{color:#4fd9de;}
+  .node-card.y{border-color:#7a6413;} .node-card.y .np{color:#e8c65a;}
+  .node-card.r{border-color:#7a2724;} .node-card.r .np{color:#f08b87;}
+  .empty-msg{color:var(--muted);text-align:center;padding:26px;font-size:12.5px;}
+
+  /* ---------- TABLE VIEWS ---------- */
+  .toolbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+  .toolbar input,.toolbar select{background:var(--navy-900);border:1px solid var(--line);color:var(--text);padding:8px 11px;border-radius:9px;font-size:12.5px;}
+  #pSearch,#aSearch{min-width:210px;}
+  .btn{background:linear-gradient(135deg,var(--blue),#173e6d);color:#fff;border:none;padding:8px 15px;border-radius:9px;font-size:12.5px;font-weight:600;}
+  .btn.gold{background:linear-gradient(135deg,var(--gold),#8a6d1e);color:#1a1300;}
+  .btn.ghost{background:var(--navy-700);border:1px solid var(--line);color:var(--text);}
+  .btn.danger{background:linear-gradient(135deg,var(--red),#5c211f);color:#fff;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  thead th{text-align:right;color:var(--muted);padding:9px;border-bottom:2px solid var(--line);font-weight:600;white-space:nowrap;}
+  tbody td{padding:8px 9px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  tbody tr{cursor:pointer;}
+  tbody tr:hover{background:var(--navy-700);}
+  .pill{padding:2px 9px;border-radius:20px;font-size:10.5px;font-weight:600;}
+  .pill.active{background:#173a24;color:#7fe0a6;}
+  .pill.leave{background:#3a2f14;color:#e8c65a;}
+  .pill.training{background:#142f4a;color:#78b6ee;}
+  .pill.sick{background:#3a1620;color:#f08b87;}
+  .row-actions{cursor:default;}
+  .row-actions button{background:none;border:none;color:var(--muted);font-size:13px;margin-left:5px;cursor:pointer;}
+  .row-actions button:hover{color:var(--gold);}
+  .table-wrap{background:var(--navy-800);border:1px solid var(--line);border-radius:var(--radius);padding:11px;overflow-x:auto;}
+
+  /* ---------- BOTTOM CARDS ---------- */
+  .bottom-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:14px;}
+  @media(max-width:1200px){.bottom-row{grid-template-columns:repeat(2,1fr);}}
+  .card2{background:linear-gradient(180deg,var(--navy-800),var(--navy-700));border:2px solid var(--line);border-radius:var(--radius);padding:12px;display:flex;flex-direction:column;gap:9px;cursor:pointer;transition:.15s;}
+  .card2:hover{transform:translateY(-2px);border-color:var(--gold);}
+  .card2.active-cat{border-color:var(--gold);}
+  .card2 .head{display:flex;justify-content:space-between;align-items:center;}
+  .card2 .head h4{margin:0;font-size:12.5px;}
+  .card2 .head p{margin:2px 0 0;font-size:10.5px;color:var(--muted);}
+  .ring{width:48px;height:48px;position:relative;flex:none;}
+  .ring svg{transform:rotate(-90deg);}
+  .ring .val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+  .mini-stats{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);border-top:1px dashed var(--line);padding-top:7px;}
+  .mini-stats b{display:block;color:var(--text);font-size:12px;}
+
+  .dash-lower{display:grid;grid-template-columns:1fr 290px;gap:12px;}
+  @media(max-width:1100px){.dash-lower{grid-template-columns:1fr;}}
+  .alerts{list-style:none;margin:0;padding:0;}
+  .alerts li{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted);}
+  .alerts li b{background:var(--red);color:#fff;font-size:10.5px;padding:1px 8px;border-radius:20px;}
+  .alerts li.warn b{background:var(--amber);}
+  .alerts li.info b{background:var(--blue);}
+  .qa-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+  .qa{background:var(--navy-900);border:1px solid var(--line);border-radius:10px;padding:9px 4px;text-align:center;font-size:10.5px;color:var(--muted);cursor:pointer;}
+  .qa .qi{font-size:17px;display:block;margin-bottom:3px;}
+  .qa:hover{border-color:var(--gold);color:var(--text);}
+
+  /* ---------- MODAL ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(2,6,16,.65);display:flex;align-items:center;justify-content:center;z-index:100;}
+  .modal{background:var(--navy-800);border:1px solid var(--line);border-radius:16px;padding:18px;width:400px;max-width:92vw;max-height:88vh;overflow-y:auto;}
+  .modal.modal-lg{width:680px;}
+  .modal.modal-xl{width:880px;}
+  .modal h3{margin:0 0 12px;color:var(--gold-l);}
+  .field{margin-bottom:9px;}
+  .field label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px;}
+  .field input,.field select,.field textarea{width:100%;background:var(--navy-900);border:1px solid var(--line);color:var(--text);padding:8px 9px;border-radius:8px;font-size:12.5px;font-family:inherit;}
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;}
+  .profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;font-size:12.5px;background:var(--navy-900);padding:13px;border-radius:10px;}
+  .profile-grid div b{color:var(--muted);font-weight:600;margin-left:4px;}
+  .timeline{list-style:none;margin:0;padding:0;max-height:260px;overflow-y:auto;}
+  .timeline li{border-right:2px solid var(--line);padding:6px 13px 6px 0;margin-right:4px;font-size:12px;color:var(--muted);position:relative;}
+  .timeline li::before{content:'';position:absolute;right:-5px;top:11px;width:8px;height:8px;border-radius:50%;background:var(--gold);}
+  .timeline li b{color:var(--gold-l);}
+  .reason-box{background:#2a1f0a;border:1px solid #6b5314;border-radius:8px;padding:9px;margin-bottom:11px;font-size:11.5px;color:var(--gold-l);}
+  .warn-badge{color:#f0a83a;font-size:10.5px;margin-right:4px;}
+
+  /* ---------- candidate / attendance lists ---------- */
+  .cand-list{max-height:320px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;padding:7px;background:var(--navy-900);}
+  .cand-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;font-size:12px;color:var(--muted);cursor:pointer;flex-wrap:wrap;}
+  .cand-row:hover{background:var(--navy-700);}
+  .cand-row.cand-checked{color:var(--gold-l);font-weight:700;background:#16305c;}
+  .cand-row input{width:auto;}
+  .att-row{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;font-size:12px;flex-wrap:wrap;color:var(--muted);}
+  .att-row.absent{background:#2a1218;}
+  .att-row input[type=checkbox]{width:auto;}
+  .att-row input[type=text]{flex:1;min-width:150px;background:var(--navy-800);border:1px solid var(--line);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11.5px;}
+  .att-row .nm{min-width:160px;}
+
+  /* ---------- org tree editor & settings blocks ---------- */
+  .org-node{margin-bottom:2px;}
+  .org-node-row{display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:8px;background:var(--navy-900);border:1px solid var(--line);font-size:12px;margin-bottom:4px;flex-wrap:wrap;}
+  .org-node-row .note{color:var(--muted2);font-size:10.5px;}
+  .danger-zone{border:1px dashed var(--red);border-radius:10px;padding:11px;margin-top:9px;}
+  .cfg-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:12.5px;}
+  .cfg-row input{width:auto;}
+  .cfg-group{margin-bottom:14px;}
+  .cfg-group h4{margin:0 0 6px;color:var(--gold-l);font-size:12.5px;}
+
+  footer{margin-top:auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:9px;padding:11px 18px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;background:var(--navy-900);}
+  footer b{color:var(--text);}
+  .dot-live{width:8px;height:8px;border-radius:50%;background:#3fd67a;display:inline-block;margin-left:6px;box-shadow:0 0 6px #3fd67a;}
+
+  .placeholder-box{background:var(--navy-800);border:1px dashed var(--line);border-radius:var(--radius);padding:50px 20px;text-align:center;color:var(--muted);}
+  .placeholder-box .pi{font-size:32px;display:block;margin-bottom:10px;}
+
+  .toast{position:fixed;bottom:18px;left:18px;background:var(--navy-700);border:1px solid var(--gold);color:var(--text);padding:11px 16px;border-radius:10px;z-index:999;font-size:12.5px;box-shadow:0 6px 18px rgba(0,0,0,.4);}
+  .note{font-size:11px;color:var(--muted2);margin-top:5px;}
+
+  @media(max-width:1300px){
+    .stats-row{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));}
+    .bottom-row{grid-template-columns:repeat(3,1fr);}
+  }
+  @media print{
+    .sidebar,.topbar,.toolbar,.qa-grid,footer,.no-print,.explorer-toolbar,.stats-row,.sidebar-toggle-outer{display:none!important;}
+    body{background:#fff;color:#000;}
+  }
+</style>
+</head>
+<body>
+<div id="splashScreen">
+  <img id="splashImg" src="" alt="" style="display:none;">
+  <svg id="splashDefaultEmblem" class="splash-emblem" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="100" cy="100" r="95" fill="#0a1730" stroke="#d4af37" stroke-width="4"/>
+    <rect x="45" y="70" width="110" height="18" fill="#2ea86a"/>
+    <rect x="45" y="88" width="110" height="18" fill="#eaf0fb"/>
+    <rect x="45" y="106" width="110" height="18" fill="#111"/>
+    <polygon points="80,79 82,85 88,85 83,89 85,95 80,91 75,95 77,89 72,85 78,85" fill="#d4af37"/>
+    <polygon points="100,79 102,85 108,85 103,89 105,95 100,91 95,95 97,89 92,85 98,85" fill="#d4af37"/>
+    <polygon points="120,79 122,85 128,85 123,89 125,95 120,91 115,95 117,89 112,85 118,85" fill="#d4af37"/>
+  </svg>
+  <h1 id="splashWelcome">أهلا بك أخي أبو عمير</h1>
+  <p>جاري تحميل النظام...</p>
+  <div class="splash-bar-track"><div class="splash-bar-fill" id="splashBar"></div></div>
+  <div class="splash-skip" id="splashSkip">تخطي</div>
+</div>
+<div class="sidebar-toggle-outer" id="sbOpenBtn">☰</div>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-toggle" id="sbCloseBtn">◀</div>
+    <div class="brand">
+      <div class="crest">🎖️</div>
+      <b id="orgNameLbl">نظام إدارة الموارد البشرية</b>
+    </div>
+    <ul class="nav" id="navList">
+      <li><span data-view="dashboard" class="active"><span class="ic">🏠</span> لوحة التحكم</span></li>
+      <li><span data-view="personnel"><span class="ic">👤</span> الأفراد</span></li>
+      <li><span data-view="archive"><span class="ic">🗄️</span> الأرشيف</span></li>
+      <li><span data-view="training"><span class="ic">🎓</span> التدريب</span></li>
+      <li><span data-view="duties"><span class="ic">🛡️</span> النوبات والتقويم</span></li>
+      <li><span data-view="logs"><span class="ic">🧾</span> السجلات</span></li>
+      <li><span data-view="reports"><span class="ic">📊</span> التقارير</span></li>
+      <li><span data-view="settings"><span class="ic">⚙️</span> الإعدادات</span></li>
+    </ul>
+    <div class="logout" id="resetBtn">إعادة تعيين البيانات</div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="who">
+        <div class="av">👤</div>
+        <div><div class="name" id="cmdName">المقدم أحمد الخطيب</div><div class="role">مدير النظام</div></div>
+      </div>
+      <div class="title-block">
+        <h1 id="orgTitle">نظام إدارة الموارد البشرية</h1>
+        <p>لوحة التحكم الرئيسية</p>
+      </div>
+      <div class="topbar-right">
+        <button class="fs-btn" id="fsBtn" title="وضع ملء الشاشة (يخفي شريط المتصفح)">⛶</button>
+        <div class="iconbtn" title="التنبيهات">🔔<span class="badge" id="notifBadge">0</span></div>
+        <div class="iconbtn" title="الرسائل">✉️<span class="badge" id="msgBadge">0</span></div>
+        <div class="clockbox"><div class="time" id="clockTime">--:--:--</div><div class="date" id="clockDate">-- -- ----</div></div>
+      </div>
+    </div>
+
+    <!-- ============ DASHBOARD VIEW ============ -->
+    <div class="view active" id="view-dashboard">
+      <div class="stats-row" id="statsRow"></div>
+
+      <div class="panel explorer-panel" id="explorerPanelWrap">
+        <h3>استكشاف الجاهزية <span class="tag" id="explorerCatTag">إجمالي الأفراد</span></h3>
+        <div class="explorer-crumbs" id="explorerCrumbs"></div>
+        <div class="explorer-toolbar">
+          <div class="note" id="explorerCount">0 عنصر ضمن العرض الحالي</div>
+          <div class="btns">
+            <button class="btn-sm" id="expCsv">⬇️ تصدير Excel</button>
+            <button class="btn-sm" id="expPdf">📄 تصدير PDF</button>
+            <button class="btn-sm" id="expPrint">🖨️ طباعة</button>
+          </div>
+        </div>
+        <div id="explorerBody"></div>
+      </div>
+
+      <div class="grid2" id="chartsWrap">
+        <div class="panel" id="donutPanel"><h3>توزيع الأفراد حسب الرتبة</h3>
+          <div class="donut-wrap"><div class="donut" id="donutChart"><div class="center"><b id="donutTotal">0</b><small>إجمالي</small></div></div>
+          <ul class="legend" id="donutLegend"></ul></div>
+        </div>
+        <div class="panel" id="linePanel"><h3>مخطط الالتحاق خلال الأشهر <span class="tag" id="trendTag">+0%</span></h3>
+          <svg class="chartline" id="lineChart" viewBox="0 0 600 210"></svg>
+        </div>
+      </div>
+
+      <div class="bottom-row" id="bottomRow"></div>
+
+      <div class="dash-lower">
+        <div class="panel" id="qaPanel">
+          <h3>إجراءات سريعة</h3>
+          <div class="qa-grid">
+            <div class="qa" data-act="search"><span class="qi">🔍</span>بحث شامل</div>
+            <div class="qa" data-act="report"><span class="qi">📄</span>تقرير سريع</div>
+            <div class="qa" data-act="print"><span class="qi">🖨️</span>طباعة الكل</div>
+            <div class="qa" data-act="csv"><span class="qi">📈</span>تصدير الكل Excel</div>
+            <div class="qa" data-act="calendar"><span class="qi">🗓️</span>النوبات</div>
+          </div>
+        </div>
+        <div class="panel" id="alertsPanel">
+          <h3>التنبيهات <span class="tag" id="alertCountTag">0</span> <button class="iconlink" id="addAlertInline" title="إضافة تنبيه">➕</button></h3>
+          <ul class="alerts" id="alertsList"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ PERSONNEL VIEW ============ -->
+    <div class="view" id="view-personnel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:9px;">
+        <h2 style="margin:0;color:var(--gold-l);font-size:17px;">إدارة الأفراد</h2>
+        <button class="btn gold" id="addPersonBtn">➕ إضافة موظف</button>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="pSearch" placeholder="🔍 اكتب أي شيء: اسم، رقم، رتبة، حالة...">
+        <select id="pFilterRank"><option value="">كل الرتب</option></select>
+        <select id="pFilterUnit"><option value="">كل الفروع الرئيسية</option></select>
+        <select id="pFilterStatus">
+          <option value="">كل الحالات</option><option value="نشط">نشط</option><option value="إجازة">إجازة</option><option value="دورة">دورة</option><option value="عيادة">عيادة</option>
+        </select>
+        <button class="btn ghost" id="exportCsvBtn">⬇️ Excel</button>
+        <button class="btn ghost" id="exportPdfBtn">📄 PDF</button>
+        <button class="btn ghost" id="printBtn">🖨️ طباعة</button>
+      </div>
+      <div class="table-wrap"><table>
+        <thead id="personnelHead"></thead>
+        <tbody id="personnelBody"></tbody>
+      </table></div>
+      <p style="color:var(--muted);font-size:11.5px;margin-top:9px;" id="pCount"></p>
+      <p class="note">💡 اضغط على أي سطر لعرض الملف الشخصي الكامل. لا يمكن حذف أي فرد من هنا — استخدم زر 🔁 لنقل/تحويل/فصل الفرد (يبقى محفوظًا بالأرشيف)، والحذف النهائي حصرًا من الإعدادات بكلمة سر.</p>
+    </div>
+
+    <!-- ============ ARCHIVE VIEW ============ -->
+    <div class="view" id="view-archive">
+      <h2 style="margin:0 0 12px;color:var(--gold-l);font-size:17px;">الأرشيف (منقول / محول / مفصول)</h2>
+      <div class="toolbar"><input type="text" id="aSearch" placeholder="🔍 بحث..."></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>الاسم</th><th>الرتبة</th><th>الفرع التنظيمي</th><th>الحالة الإدارية</th><th>السبب</th><th>التاريخ</th><th>إجراءات</th></tr></thead>
+        <tbody id="archiveBody"></tbody>
+      </table></div>
+    </div>
+
+    <!-- ============ TRAINING VIEW ============ -->
+    <div class="view" id="view-training">
+      <div class="toolbar"><button class="btn gold" id="addTrainBtn">➕ إضافة دورة</button></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>اسم الدورة</th><th>التاريخ</th><th>الحالة</th><th>المرشحون</th><th>الحاضرون</th><th>المتخلفون</th><th>إجراءات</th></tr></thead>
+        <tbody id="trainBody"></tbody>
+      </table></div>
+      <p class="note">لا يمكن حذف الدورات من هنا — الحذف النهائي حصرًا من الإعدادات بكلمة سر.</p>
+    </div>
+
+    <!-- ============ DUTIES + CALENDAR VIEW ============ -->
+    <div class="view" id="view-duties">
+      <div class="toolbar"><button class="btn gold" id="addDutyBtn">➕ إضافة نوبة جديدة</button></div>
+      <div class="table-wrap" style="margin-bottom:14px;"><table>
+        <thead><tr><th>اسم النوبة / الموقع</th><th>الفترة</th><th>النوبة الأولى</th><th>النوبة الثانية</th><th>إجراءات</th></tr></thead>
+        <tbody id="dutyBody"></tbody>
+      </table></div>
+      <div class="panel" style="max-width:640px;">
+        <h3 id="calTitle">التقويم</h3>
+        <div id="calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center;font-size:11px;"></div>
+        <p class="note">🛡️ = نوبة نشطة في هذا اليوم &nbsp; 🎓 = دورة تدريبية مجدولة بهذا التاريخ</p>
+      </div>
+    </div>
+
+    <!-- ============ LOGS VIEW ============ -->
+    <div class="view" id="view-logs">
+      <div class="panel" style="margin-bottom:12px;">
+        <h3>سجل تعديلات الأفراد</h3>
+        <div class="table-wrap"><table><thead><tr><th>التاريخ</th><th>الفرد</th><th>سبب التعديل</th><th>التفاصيل</th></tr></thead><tbody id="editLogBody"></tbody></table></div>
+      </div>
+      <div class="panel" style="margin-bottom:12px;">
+        <h3>سجل عدم الالتحاق بالتدريب</h3>
+        <div class="table-wrap"><table><thead><tr><th>الدورة</th><th>الفرد</th><th>السبب</th><th>تاريخ التسجيل</th></tr></thead><tbody id="absenceLogBody"></tbody></table></div>
+      </div>
+      <div class="panel">
+        <h3>سجل عدم الالتحاق بالنوبات</h3>
+        <div class="table-wrap"><table><thead><tr><th>النوبة</th><th>الشِفت</th><th>الفرد</th><th>السبب</th></tr></thead><tbody id="dutyAbsenceLogBody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ============ REPORTS VIEW (top-down, date-ranged) ============ -->
+    <div class="view" id="view-reports">
+      <div class="panel" style="margin-bottom:14px;">
+        <h3>مولّد التقارير الشامل</h3>
+        <div class="toolbar">
+          <select id="repCat"></select>
+          <label class="note">من <input type="date" id="repFrom" style="background:var(--navy-900);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:7px;"></label>
+          <label class="note">إلى <input type="date" id="repTo" style="background:var(--navy-900);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:7px;"></label>
+          <button class="btn-sm" id="repGenBtn">📄 توليد تقرير هذا المستوى</button>
+        </div>
+        <div class="explorer-crumbs" id="repCrumbs"></div>
+        <div id="repBody"></div>
+      </div>
+      <div id="repOutput"></div>
+    </div>
+
+    <!-- ============ SETTINGS VIEW ============ -->
+    <div class="view" id="view-settings">
+      <div class="panel" style="max-width:480px;margin-bottom:14px;">
+        <h3>إعدادات النظام العامة</h3>
+        <div class="field"><label>اسم المؤسسة / النظام</label><input id="setOrgName" type="text"></div>
+        <div class="field"><label>اسم مدير النظام</label><input id="setCmdName" type="text"></div>
+        <button class="btn gold" id="saveSettingsBtn">حفظ الإعدادات</button>
+      </div>
+
+      <div class="panel" style="max-width:480px;margin-bottom:14px;">
+        <h3>🖼️ شاشة الترحيب (عند فتح النظام)</h3>
+        <div class="field"><label>الشعار / الصورة</label><input type="file" id="splashImgInput" accept="image/*"></div>
+        <div id="splashPreviewWrap" style="margin-bottom:9px;"></div>
+        <div class="field"><label>نص الترحيب</label><input type="text" id="splashTextInput" placeholder="أهلا بك أخي..."></div>
+        <div class="field"><label>مدة الظهور (بالثواني)</label><input type="number" min="1" max="30" id="splashSecInput"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn gold" id="splashSaveBtn">حفظ إعدادات الترحيب</button>
+          <button class="btn ghost" id="splashResetBtn">استعادة الافتراضي (الهوية السورية)</button>
+        </div>
+        <p class="note">ملاحظة: إخفاء شريط عنوان المتصفح نفسه غير ممكن تقنيًا من داخل الصفحة لأسباب أمنية بكل المتصفحات، لكن زر ⛶ أعلى الصفحة يفعّل وضع ملء الشاشة الذي يخفي كل شرائط المتصفح فعليًا.</p>
+      </div>
+
+      <div class="panel" style="max-width:560px;margin-bottom:14px;">
+        <h3>🖥️ تخصيص لوحة التحكم</h3>
+        <p class="note" style="margin-bottom:8px;">حدد أي الكروت والأقسام تظهر في لوحة التحكم الرئيسية.</p>
+        <div id="dashConfigBody"></div>
+      </div>
+
+      <div class="panel" style="max-width:560px;margin-bottom:14px;">
+        <h3>🧩 حقول بيانات الأفراد المخصصة</h3>
+        <p class="note" style="margin-bottom:8px;">أضف حقولًا جديدة لاستمارة إضافة/تعديل الفرد (مثل: العمر، رقم الهاتف...) وحدد إن كانت إلزامية.</p>
+        <button class="btn gold" id="addFieldBtn" style="margin-bottom:10px;">➕ إضافة حقل جديد</button>
+        <div id="customFieldsBody"></div>
+      </div>
+
+      <div class="panel" style="max-width:560px;margin-bottom:14px;">
+        <h3>الهيكل التنظيمي <span class="tag">تحكم كامل - عمق غير محدود</span></h3>
+        <p class="note" style="margin-bottom:10px;">أضف عنصرًا رئيسيًا ثم أضف تحته أي عدد من الفروع الفرعية، بلا حد للعمق.</p>
+        <button class="btn gold" id="addRootNodeBtn" style="margin-bottom:10px;">➕ إضافة عنصر رئيسي جديد</button>
+        <div id="orgEditorBody"></div>
+      </div>
+
+      <div class="panel" style="max-width:480px;margin-bottom:14px;">
+        <h3>النسخ الاحتياطي</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn ghost" id="backupBtn">💾 نسخ احتياطي</button>
+          <button class="btn ghost" id="restoreBtn">📥 استعادة نسخة</button>
+        </div>
+      </div>
+
+      <div class="panel" style="max-width:560px;margin-bottom:14px;">
+        <h3>🔑 كلمة سر العمليات الحساسة</h3>
+        <div class="field"><label>كلمة السر الحالية</label><input type="password" id="pwCurrent"></div>
+        <div class="field"><label>كلمة السر الجديدة</label><input type="password" id="pwNew"></div>
+        <button class="btn ghost" id="pwChangeBtn">تغيير كلمة السر</button>
+      </div>
+
+      <div class="panel" style="max-width:560px;margin-bottom:14px;">
+        <h3>⚠️ منطقة الحذف النهائي</h3>
+        <p class="note">الحذف النهائي لا رجعة عنه ويتطلب كلمة السر.</p>
+        <div class="danger-zone">
+          <b>حذف نهائي لفرد</b>
+          <div style="margin-top:8px;"><button class="btn danger" id="unlockPersonDelete">🔒 فتح قسم حذف الأفراد</button></div>
+          <div id="personDeleteZone" style="margin-top:10px;display:none;"></div>
+        </div>
+        <div class="danger-zone">
+          <b>حذف نهائي لدورة تدريبية</b>
+          <div style="margin-top:8px;"><button class="btn danger" id="unlockTrainDelete">🔒 فتح قسم حذف الدورات</button></div>
+          <div id="trainDeleteZone" style="margin-top:10px;display:none;"></div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <div><span class="dot-live"></span>النظام يعمل محلياً بدون اتصال بالإنترنت</div>
+      <div>الإصدار: <b>v1.4</b></div>
+      <div>قاعدة البيانات: <b>محفوظة على هذا الجهاز</b></div>
+      <div>عدد الأفراد النشطين: <b id="footCount">0</b></div>
+      <div>آخر تحديث: <b id="footTime">--:--</b></div>
+    </footer>
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+/* ======================= CONSTANTS ======================= */
+const LS_KEY = "hr_offline_system_v5";
+const OFFICER_RANKS = ["عميد","عقيد","مقدم","رائد","نقيب","ملازم أول","ملازم"];
+const NCO_RANKS = ["رقيب أول","رقيب","عريف أول","عريف","وكيل عرفاء"];
+const SOLDIER_RANKS = ["جندي أول","جندي"];
+const ALL_RANKS = [...OFFICER_RANKS, ...NCO_RANKS, ...SOLDIER_RANKS];
+const JOBS = ["عادي","سائق","حارس"];
+const STATUSES = ["نشط","إجازة","دورة","عيادة"];
+const READINESS = ["جاهز","غير جاهز","متخلف"];
+const ADMIN_STATUSES = ["منقول","محول","مفصول"];
+const RANK_COLORS = ["#2f7bd1","#2ea86a","#d9a72b","#8b5fd6","#17a2a8","#d9534f","#5b6fd6","#c46bd6","#4fb3ff","#e0895b","#7ee08a","#e0c95b"];
+const MODULE_COLORS = ["blue","green","amber","purple","teal","red","indigo"];
+
+const FIRST_NAMES = ["محمد","أحمد","خالد","عمر","يوسف","سالم","ناصر","فيصل","طارق","حسن","علي","سعيد","بندر","تركي","ماجد","عبدالله","فهد","زياد","رامي","وليد","إبراهيم","عادل","مروان","كريم","سامي"];
+const LAST_NAMES = ["الخطيب","الشمري","العتيبي","القحطاني","الزهراني","الدوسري","المطيري","الحربي","الغامدي","العمري","السبيعي","الجهني","العنزي","البلوي","الرشيدي"];
+const UNIT_NAMES = ["اللواء الأول","اللواء الثاني"];
+const KATEEBA_SUFFIX = ["الأولى","الثانية","الثالثة"];
+const SARIYA_SUFFIX = ["الأولى","الثانية","الثالثة"];
+const FASEELA_SUFFIX = ["الأولى","الثانية"];
+const TRAININGS_SEED = ["دورة القيادة الأساسية","دورة الإسعافات الأولية","دورة الأسلحة المتقدمة","دورة اللياقة البدنية","دورة الاتصالات","دورة أمن المعلومات"];
+const WEAPON_NAMES = ["بندقية آلية","مدفع رشاش خفيف","قاذفة صواريخ محمولة","عربة مدرعة","جهاز اتصال لاسلكي","منظار ليلي"];
+const ABSENCE_REASONS_SAMPLE = ["غياب بدون عذر","ظرف عائلي طارئ","مهمة رسمية بديلة","وعكة صحية"];
+
+function rnd(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function rndInt(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function pad(n){return n<10?"0"+n:""+n;}
+function fmtDate(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function randomDateBetween(d1,d2){ const t1=d1.getTime(), t2=d2.getTime(); if(t2<=t1) return fmtDate(d1); return fmtDate(new Date(t1 + Math.random()*(t2-t1))); }
+function todayStr(){ return fmtDate(new Date()); }
+function addDays(dateStr,n){ const d=new Date(dateStr); d.setDate(d.getDate()+n); return fmtDate(d); }
+function escapeHtml(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function highlightMatch(text, q){
+  const s = String(text==null?"":text);
+  if(!q) return escapeHtml(s);
+  const idx = s.toLowerCase().indexOf(q.toLowerCase());
+  if(idx===-1) return escapeHtml(s);
+  return escapeHtml(s.slice(0,idx)) + '<mark class="hl">' + escapeHtml(s.slice(idx, idx+q.length)) + '</mark>' + escapeHtml(s.slice(idx+q.length));
+}
+function sampleIds(arr,n){ const copy=[...arr]; const out=[]; for(let i=0;i<n && copy.length;i++){ out.push(copy.splice(rndInt(0,copy.length-1),1)[0]); } return out; }
+
+/* ======================= PRINT FIX: hidden iframe instead of window.open (avoids popup-blocker crash) ======================= */
+function buildPrintable(title, header, rows){ return buildPrintableSections(title, [{heading:null, header, rows}]); }
+function buildPrintableSections(title, sections){
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = "position:fixed;right:-99999px;bottom:-99999px;width:0;height:0;border:0;";
+  document.body.appendChild(iframe);
+  const style = `<style>
+    @page{ size:A4 landscape; margin:10mm; }
+    *{box-sizing:border-box;}
+    body{font-family:Arial,sans-serif;direction:rtl;padding:0;color:#111;width:100%;}
+    h2{margin-bottom:4px;} h3{margin:18px 0 4px;color:#333;} p{color:#555;font-size:11px;margin-top:0;}
+    table{width:100%;max-width:100%;border-collapse:collapse;font-size:10.5px;margin-top:8px;table-layout:fixed;}
+    th,td{border:1px solid #ccc;padding:5px 6px;text-align:right;word-wrap:break-word;overflow-wrap:break-word;white-space:normal;}
+    th{background:#eee;}</style>`;
+  let body = `<h2>${title} - ${state.org.name}</h2><p>تاريخ التصدير: ${new Date().toLocaleString('ar-EG')}</p>`;
+  sections.forEach(sec=>{
+    if(sec.heading) body += `<h3>${sec.heading}</h3>`;
+    body += `<table><thead><tr>${sec.header.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>
+      ${sec.rows.length? sec.rows.map(r=>`<tr>${r.map(v=>`<td>${v??'-'}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${sec.header.length}" style="text-align:center;">لا توجد بيانات</td></tr>`}
+      </tbody></table>`;
+  });
+  const html = `<html lang="ar" dir="rtl"><head><meta charset="UTF-8">${style}<title>${title}</title></head><body>${body}</body></html>`;
+  const doc = iframe.contentWindow.document;
+  doc.open(); doc.write(html); doc.close();
+  return iframe;
+}
+function firePrint(iframe){
+  setTimeout(()=>{
+    try{ iframe.contentWindow.focus(); iframe.contentWindow.print(); }catch(e){ alert("تعذر فتح الطباعة."); }
+    setTimeout(()=>{ if(iframe.parentNode) iframe.parentNode.removeChild(iframe); }, 1500);
+  }, 250);
+}
+
+/* ======================= REAL EXCEL TABLE EXPORT (.xls, opens as a proper formatted table, not plain CSV) ======================= */
+function exportTableAsExcel(filenameBase, sections){
+  // sections: [{heading, header, rows}] - one or more tables in a single workbook/sheet
+  let body = `<h2 style="font-family:Arial;">${filenameBase}</h2>`;
+  sections.forEach(sec=>{
+    if(sec.heading) body += `<h3 style="font-family:Arial;color:#173e6d;">${sec.heading}</h3>`;
+    body += `<table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;font-family:Arial;font-size:12px;direction:rtl;">
+      <thead><tr>${sec.header.map(h=>`<th style="background:#173e6d;color:#fff;padding:5px 8px;">${h}</th>`).join("")}</tr></thead>
+      <tbody>${sec.rows.length? sec.rows.map(r=>`<tr>${r.map(v=>`<td style="padding:4px 8px;">${(v==null?'-':v)}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${sec.header.length}">لا توجد بيانات</td></tr>`}</tbody>
+    </table><br/>`;
+  });
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+  <head><meta charset="UTF-8"></head><body>${body}</body></html>`;
+  downloadFile(`${filenameBase}.xls`, html, "application/vnd.ms-excel;charset=utf-8;");
+  toast("تم تصدير ملف Excel كجدول منسّق");
+}
+
+/* ======================= COLUMN PICKER: choose exactly what appears before printing / exporting ======================= */
+function openColumnPickerModal(allColumns, prefKey, title, onConfirm){
+  const saved = (state.exportPrefs[prefKey] && state.exportPrefs[prefKey].length) ? state.exportPrefs[prefKey] : allColumns.map(c=>c.key);
+  const selected = new Set(saved.filter(k=>allColumns.some(c=>c.key===k)));
+  if(selected.size===0) allColumns.forEach(c=>selected.add(c.key));
+  document.getElementById("modalRoot").innerHTML = `<div class="overlay" id="modalOverlay"><div class="modal">
+    <h3>${title} — اختر ما يظهر بالتصدير/الطباعة</h3>
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <button class="btn-sm" id="cpAll">تحديد الكل</button><button class="btn-sm" id="cpNone">إلغاء الكل</button>
+    </div>
+    <div class="cand-list" id="cpList">${allColumns.map(c=>`
+      <label class="cand-row ${selected.has(c.key)?'cand-checked':''}" data-key="${c.key}"><input type="checkbox" ${selected.has(c.key)?"checked":""}> ${c.label}</label>`).join("")}</div>
+    <div class="modal-actions"><button class="btn ghost" id="modalCancel">إلغاء</button><button class="btn gold" id="modalSave">متابعة</button></div>
+  </div></div>`;
+  const listEl = document.getElementById("cpList");
+  function wire(){ listEl.querySelectorAll(".cand-row").forEach(row=>{ row.querySelector("input").addEventListener("change", e=>{ const k=row.dataset.key; if(e.target.checked) selected.add(k); else selected.delete(k); row.classList.toggle("cand-checked", e.target.checked); }); }); }
+  wire();
+  document.getElementById("cpAll").addEventListener("click", ()=>{ allColumns.forEach(c=>selected.add(c.key)); listEl.querySelectorAll(".cand-row").forEach(row=>{ row.classList.add("cand-checked"); row.querySelector("input").checked=true; }); });
+  document.getElementById("cpNone").addEventListener("click", ()=>{ selected.clear(); listEl.querySelectorAll(".cand-row").forEach(row=>{ row.classList.remove("cand-checked"); row.querySelector("input").checked=false; }); });
+  document.getElementById("modalCancel").addEventListener("click", closeModal);
+  document.getElementById("modalOverlay").addEventListener("click", e=>{ if(e.target.id==="modalOverlay") closeModal(); });
+  document.getElementById("modalSave").addEventListener("click", ()=>{
+    if(selected.size===0){ alert("اختر عمودًا واحدًا على الأقل"); return; }
+    const keys = allColumns.map(c=>c.key).filter(k=>selected.has(k));
+    state.exportPrefs[prefKey] = keys; save();
+    closeModal(); onConfirm(keys);
+  });
+}
+
+
+/* ======================= GENERIC UNLIMITED-DEPTH ORG TREE ======================= */
+function makeNode(name){ return {id:'n'+Date.now().toString(36)+Math.random().toString(36).slice(2,7), name, children:[]}; }
+function nodeById(id, nodes=state.orgTree){ for(const n of nodes){ if(n.id===id) return n; const f=nodeById(id,n.children); if(f) return f; } return null; }
+function findPathNodes(id, nodes=state.orgTree, trail=[]){ for(const n of nodes){ const t=[...trail,n]; if(n.id===id) return t; const r=findPathNodes(id,n.children,t); if(r) return r; } return null; }
+function pathLabel(id){ const p=findPathNodes(id); return p? p.map(n=>n.name).join(" / ") : "غير محدد"; }
+function isWithinSubtree(node, targetId){ if(!node||!targetId) return false; if(node.id===targetId) return true; return node.children.some(c=>isWithinSubtree(c,targetId)); }
+function allLeaves(nodes){ let out=[]; nodes.forEach(n=>{ if(n.children.length===0) out.push(n); else out=out.concat(allLeaves(n.children)); }); return out; }
+function findParentArray(id, nodes=state.orgTree){ for(let i=0;i<nodes.length;i++){ if(nodes[i].id===id) return nodes; const r=findParentArray(id,nodes[i].children); if(r) return r; } return null; }
+function countLinkedRecords(node){
+  const pc = state.personnel.filter(p=>isWithinSubtree(node,p.orgNodeId)).length;
+  let mc=0; state.modules.forEach(m=> mc += m.records.filter(r=>isWithinSubtree(node,r.orgNodeId)).length);
+  return pc+mc;
+}
+function buildDefaultOrgTree(){
+  const roots=[];
+  UNIT_NAMES.forEach(u=>{
+    const uNode = makeNode(u);
+    KATEEBA_SUFFIX.forEach(ks=>{
+      const kNode = makeNode("الكتيبة "+ks);
+      SARIYA_SUFFIX.forEach(ss=>{
+        const sNode = makeNode("السرية "+ss);
+        FASEELA_SUFFIX.forEach(fs=> sNode.children.push(makeNode("الفصيلة "+fs)) );
+        kNode.children.push(sNode);
+      });
+      uNode.children.push(kNode);
+    });
+    roots.push(uNode);
+  });
+  return roots;
+}
+
+/* ======================= SEED DATA ======================= */
+function buildHistory(joinDateStr, rank, trainingsCompleted){
+  const jd = new Date(joinDateStr); const today = new Date();
+  const hist = [{date: joinDateStr, type:"التحاق", detail:`تم تسجيل الفرد في النظام برتبة ${rank}`}];
+  for(let t=0;t<trainingsCompleted;t++) hist.push({date: randomDateBetween(jd,today), type:"دورة", detail:`أكمل دورة: ${rnd(TRAININGS_SEED)}`});
+  if(Math.random()<0.3) hist.push({date: randomDateBetween(jd,today), type:"ترقية", detail:`ترقية إلى رتبة ${rank}`});
+  for(let d=0; d<rndInt(1,3); d++) hist.push({date: randomDateBetween(jd,today), type:"مناوبة", detail:"أداء مناوبة يومية ضمن الوحدة"});
+  return hist;
+}
+function defaultDashboardConfig(){
+  const cats={}; ["total","officers","ncos","soldiers","drivers","guards","onduty"].forEach(id=>cats[id]=true);
+  return { cats, moduleVisibility:{weapons:true}, showExplorer:true, showDonut:true, showLineChart:true, showBottomCards:true, showAlerts:true, showQuickActions:true };
+}
+function defaultSplash(){ return { imageDataUrl:null, welcomeText:"أهلا بك أخي أبو عمير", durationSeconds:3 }; }
+function seedData(){
+  const orgTree = buildDefaultOrgTree();
+  const leaves = allLeaves(orgTree);
+  const personnel = [];
+  const today = new Date();
+  for(let i=1;i<=180;i++){
+    let rank; const r = Math.random();
+    if(r<0.28) rank = rnd(OFFICER_RANKS); else if(r<0.6) rank = rnd(NCO_RANKS); else rank = rnd(SOLDIER_RANKS);
+    const jd = new Date(today.getFullYear(), today.getMonth()-rndInt(0,11), rndInt(1,28));
+    const joinDateStr = fmtDate(jd);
+    const rr = Math.random(); const trainingsCompleted = rndInt(0,4);
+    personnel.push({
+      id: i, name: rnd(FIRST_NAMES)+" "+rnd(LAST_NAMES), rank, orgNodeId: rnd(leaves).id,
+      job: Math.random()<0.15?"سائق":Math.random()<0.25?"حارس":"عادي",
+      status: Math.random()<0.08?"إجازة":Math.random()<0.06?"دورة":Math.random()<0.03?"عيادة":"نشط",
+      readiness: rr<0.8?"جاهز":rr<0.93?"غير جاهز":"متخلف",
+      joinDate: joinDateStr, trainingsCompleted, onDutyToday: Math.random()<0.12,
+      adminStatus:"نشط", adminReason:null, adminDate:null, customData:{},
+      history: buildHistory(joinDateStr, rank, trainingsCompleted)
+    });
+  }
+  const allIds = personnel.map(p=>p.id);
+  const trainings = TRAININGS_SEED.map((n,i)=>{
+    const status = i%3===0?"مكتملة":(i%3===1?"قيد التنفيذ":"مجدولة");
+    let date;
+    if(status==="مكتملة") date = fmtDate(new Date(today.getFullYear(),today.getMonth()-rndInt(1,4),rndInt(1,28)));
+    else if(status==="قيد التنفيذ") date = todayStr();
+    else date = fmtDate(new Date(today.getFullYear(),today.getMonth()+rndInt(1,2),rndInt(1,28)));
+    const t = {id:i+1, name:n, status, date, candidates:[], attendance:{}, finalizedDate:null};
+    if(status!=="مجدولة"){
+      t.candidates = sampleIds(allIds, rndInt(15,30));
+      if(status==="مكتملة"){
+        const att={};
+        t.candidates.forEach(pid=>{ const ok=Math.random()<0.85; att[pid]={attended:ok, reason: ok?"":rnd(ABSENCE_REASONS_SAMPLE)}; });
+        t.attendance = att; t.finalizedDate = todayStr();
+      }
+    }
+    return t;
+  });
+  const weaponsRecords = [];
+  for(let i=1;i<=45;i++){
+    const st = Math.random()<0.75?"صالح":(Math.random()<0.7?"صيانة":"عاطل");
+    weaponsRecords.push({ id:i, title: rnd(WEAPON_NAMES), status: st, quantity: rndInt(3,40), orgNodeId: rnd(leaves).id });
+  }
+  const modules = [ {id:"weapons", name:"التسليح", icon:"🔫", color:"red", statuses:["صالح","صيانة","عاطل"], hasQuantity:true, records:weaponsRecords} ];
+
+  // seed one demonstration duty
+  const dutyCandIds1 = sampleIds(allIds, 12);
+  const dutyCandIds2 = sampleIds(allIds.filter(id=>!dutyCandIds1.includes(id)), 10);
+  const dAtt1 = {}; dutyCandIds1.forEach(pid=>{ const ok=Math.random()<0.8; dAtt1[pid]={attended:ok, reason: ok?"":rnd(ABSENCE_REASONS_SAMPLE)}; });
+  const duties = [{
+    id:1, name:"نوبة حراسة الأسبوع", location:"البوابة الرئيسية",
+    startDate: fmtDate(new Date(today.getFullYear(),today.getMonth(),1)),
+    endDate: fmtDate(new Date(today.getFullYear(),today.getMonth(),10)),
+    shift1:{candidates:dutyCandIds1, attendance:dAtt1, exits:{}, finalizedDate:todayStr()},
+    shift2:{candidates:dutyCandIds2, attendance:{}, exits:{}, finalizedDate:null}
+  }];
+
+  return {
+    org:{ name:"نظام إدارة الموارد البشرية العسكري", cmd:"المقدم أحمد الخطيب" },
+    orgTree, personnel, trainings, modules, duties,
+    customAlerts: [], messages: [], editLog: [],
+    customFields: [], dashboardConfig: defaultDashboardConfig(), deletePassword: "420354",
+    splash: defaultSplash(), exportPrefs: {}
+  };
+}
+function loadState(){
+  const raw = localStorage.getItem(LS_KEY);
+  if(raw){ try{
+    const s = JSON.parse(raw);
+    if(!s.dashboardConfig) s.dashboardConfig = defaultDashboardConfig();
+    if(!s.customFields) s.customFields = [];
+    if(!s.duties) s.duties = [];
+    if(!s.deletePassword) s.deletePassword = "420354";
+    if(!s.splash) s.splash = defaultSplash();
+    if(!s.exportPrefs) s.exportPrefs = {};
+    s.personnel.forEach(p=>{ if(!p.customData) p.customData={}; });
+    s.trainings.forEach(t=>{ if(!t.date) t.date = todayStr(); });
+    return s;
+  }catch(e){} }
+  const s = seedData(); localStorage.setItem(LS_KEY, JSON.stringify(s)); return s;
+}
+let state = loadState();
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+
+/* ======================= SPLASH SCREEN (visual identity + welcome + timed loading bar) ======================= */
+function initSplash(){
+  const cfg = state.splash || defaultSplash();
+  const img = document.getElementById("splashImg");
+  const defaultEmblem = document.getElementById("splashDefaultEmblem");
+  if(cfg.imageDataUrl){ img.src = cfg.imageDataUrl; img.style.display="block"; defaultEmblem.style.display="none"; }
+  else { img.style.display="none"; defaultEmblem.style.display="block"; }
+  document.getElementById("splashWelcome").textContent = cfg.welcomeText || "أهلا بك";
+  const secs = Math.max(1, cfg.durationSeconds||3);
+  const bar = document.getElementById("splashBar");
+  bar.style.transitionDuration = secs+"s";
+  requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ bar.style.width = "100%"; }); });
+  let dismissed = false;
+  function dismiss(){
+    if(dismissed) return; dismissed = true;
+    const el = document.getElementById("splashScreen");
+    el.classList.add("hide");
+    setTimeout(()=>{ el.style.display="none"; }, 550);
+  }
+  const timer = setTimeout(dismiss, secs*1000);
+  document.getElementById("splashSkip").addEventListener("click", ()=>{ clearTimeout(timer); attemptFullscreen(); dismiss(); });
+  document.getElementById("splashScreen").addEventListener("click", (e)=>{ if(e.target.id==="splashScreen"){ attemptFullscreen(); } });
+}
+function attemptFullscreen(){
+  try{
+    const el = document.documentElement;
+    if(!document.fullscreenElement){
+      (el.requestFullscreen && el.requestFullscreen()) ||
+      (el.webkitRequestFullscreen && el.webkitRequestFullscreen()) ||
+      (el.msRequestFullscreen && el.msRequestFullscreen());
+    }
+  }catch(e){ /* fullscreen requires a user gesture in most browsers; silently ignore */ }
+}
+document.getElementById("fsBtn").addEventListener("click", ()=>{
+  if(document.fullscreenElement){ document.exitFullscreen && document.exitFullscreen(); }
+  else attemptFullscreen();
+});
+initSplash();
+
+/* ======================= SIDEBAR COLLAPSE ======================= */
+function setSidebarCollapsed(collapsed){
+  document.getElementById("sidebar").classList.toggle("collapsed", collapsed);
+  document.body.classList.toggle("sb-collapsed", collapsed);
+  localStorage.setItem("hr_sidebar_collapsed", collapsed? "1":"0");
+}
+document.getElementById("sbCloseBtn").addEventListener("click", ()=>setSidebarCollapsed(true));
+document.getElementById("sbOpenBtn").addEventListener("click", ()=>setSidebarCollapsed(false));
+setSidebarCollapsed(localStorage.getItem("hr_sidebar_collapsed")==="1");
+
+/* ======================= CATEGORIES ======================= */
+const PERSON_CATEGORIES = [
+  {id:"total", label:"إجمالي الأفراد", icon:"👥", color:"blue", test:()=>true},
+  {id:"officers", label:"الضباط", icon:"⭐", color:"green", test:p=>OFFICER_RANKS.includes(p.rank)},
+  {id:"ncos", label:"صف الضباط", icon:"🎖️", color:"amber", test:p=>NCO_RANKS.includes(p.rank)},
+  {id:"soldiers", label:"العناصر", icon:"🪖", color:"purple", test:p=>SOLDIER_RANKS.includes(p.rank)},
+  {id:"drivers", label:"السائقين", icon:"🚗", color:"teal", test:p=>p.job==="سائق"},
+  {id:"guards", label:"الحراس", icon:"🛡️", color:"red", test:p=>p.job==="حارس"},
+  {id:"onduty", label:"المناوبون اليوم", icon:"📅", color:"indigo", test:p=>p.onDutyToday},
+  {id:"training", label:"في دورة تدريبية", icon:"🎓", color:"blue", test:p=>p.status==="دورة", hidden:true},
+  {id:"attendance", label:"الحاضرون (غير مرضى)", icon:"✅", color:"green", test:p=>p.status!=="عيادة", hidden:true},
+  {id:"health", label:"في العيادة", icon:"🏥", color:"teal", test:p=>p.status==="عيادة", hidden:true},
+  {id:"leave", label:"في إجازة", icon:"🌴", color:"amber", test:p=>p.status==="إجازة", hidden:true},
+  {id:"promotions", label:"مؤهلون للترقية", icon:"📈", color:"purple", test:p=>p.trainingsCompleted>=3, hidden:true},
+];
+function activePersonnel(){ return state.personnel.filter(p=>(p.adminStatus||"نشط")==="نشط"); }
+function findPersonCat(id){ return PERSON_CATEGORIES.find(c=>c.id===id); }
+function findModule(id){ return state.modules.find(m=>m.id===id); }
+let currentCat = "total";
+let drillPath = [];
+function currentDataset(){
+  const pc = findPersonCat(currentCat);
+  if(pc) return {kind:"person", label:pc.label, items: activePersonnel().filter(pc.test)};
+  const mod = findModule(currentCat);
+  if(mod) return {kind:"module", label:mod.name, module:mod, items: mod.records};
+  return {kind:"person", label:"إجمالي الأفراد", items: activePersonnel()};
+}
+
+/* ======================= NAVIGATION ======================= */
+document.getElementById("navList").addEventListener("click", e=>{
+  const el = e.target.closest("[data-view]"); if(!el) return;
+  document.querySelectorAll(".nav [data-view]").forEach(x=>x.classList.remove("active"));
+  el.classList.add("active");
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  document.getElementById("view-"+el.dataset.view).classList.add("active");
+  if(el.dataset.view==="personnel") renderPersonnel();
+  if(el.dataset.view==="archive") renderArchive();
+  if(el.dataset.view==="training") renderTraining();
+  if(el.dataset.view==="duties") { renderDuties(); renderCalendar(); }
+  if(el.dataset.view==="logs") renderLogs();
+  if(el.dataset.view==="settings") renderSettings();
+  if(el.dataset.view==="reports") renderReports();
+});
+function goto(view){ document.querySelector(`.nav [data-view="${view}"]`).click(); }
+
+/* ======================= CLOCK ======================= */
+function tickClock(){
+  const now = new Date();
+  document.getElementById("clockTime").textContent = now.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById("clockDate").textContent = now.toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById("footTime").textContent = now.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'});
+}
+setInterval(tickClock,1000); tickClock();
+
+/* ======================= STAT CARDS ======================= */
+function renderStatsRow(){
+  const cfg = state.dashboardConfig;
+  const total = activePersonnel().length || 1;
+  let html = PERSON_CATEGORIES.filter(c=>!c.hidden && cfg.cats[c.id]!==false).map(c=>{
+    const n = activePersonnel().filter(c.test).length; const pct = Math.round(n/total*100);
+    const activeCls = c.id===currentCat ? "active-cat":"";
+    return `<div class="stat ${c.color} ${activeCls}" data-cat="${c.id}"><div class="ic">${c.icon}</div><div class="num">${n.toLocaleString('ar-EG')}</div><div class="lbl">${c.label}</div><div class="chg">${pct}%</div></div>`;
+  }).join("");
+  html += state.modules.filter(m=>cfg.moduleVisibility[m.id]!==false).map(m=>{
+    const n = m.hasQuantity ? m.records.reduce((s,r)=>s+(r.quantity||0),0) : m.records.length;
+    const goodCount = m.records.filter(r=>r.status===m.statuses[0]).length;
+    const pct = m.records.length? Math.round(goodCount/m.records.length*100):0;
+    const activeCls = m.id===currentCat ? "active-cat":"";
+    return `<div class="stat ${m.color} ${activeCls}" data-cat="${m.id}"><div class="ic">${m.icon}</div><div class="num">${n.toLocaleString('ar-EG')}</div><div class="lbl">${m.name}</div><div class="chg">${pct}% ${m.statuses[0]}</div></div>`;
+  }).join("");
+  html += `<div class="stat addcard" id="addModuleCard"><div class="ic">➕</div><div class="lbl">إضافة قسم بيانات جديد</div></div>`;
+  document.getElementById("statsRow").innerHTML = html;
+  document.querySelectorAll(".stat[data-cat]").forEach(el=>el.addEventListener("click", ()=>setCategory(el.dataset.cat)));
+  document.getElementById("addModuleCard").addEventListener("click", openModuleCreateModal);
+}
+function setCategory(id){
+  currentCat = id; drillPath = [];
+  renderStatsRow(); renderBottomCards(); renderExplorer();
+  document.getElementById("explorerPanelWrap").scrollIntoView({behavior:"smooth", block:"start"});
+}
+
+/* ======================= EXPLORER (unlimited-depth drill-down) ======================= */
+function currentNode(){ return drillPath.length? nodeById(drillPath[drillPath.length-1]) : null; }
+function goodStatusOf(ds){ return ds.kind==="person" ? "جاهز" : ds.module.statuses[0]; }
+function statusFieldOf(ds){ return ds.kind==="person" ? "readiness" : "status"; }
+function nodeColorClass(pct){ return pct>=90?"g":pct>=75?"t":pct>=60?"y":"r"; }
+function renderCrumbs(ds){
+  let html = `<span class="${drillPath.length===0?'active':''}" data-idx="-1">${ds.label}</span>`;
+  drillPath.forEach((id,i)=>{ const n=nodeById(id); html += `<span class="sep">/</span><span class="${i===drillPath.length-1?'active':''}" data-idx="${i}">${n?n.name:'-'}</span>`; });
+  document.getElementById("explorerCrumbs").innerHTML = html;
+  document.querySelectorAll("#explorerCrumbs [data-idx]").forEach(el=>el.addEventListener("click", ()=>{
+    const idx = parseInt(el.dataset.idx); drillPath = idx<0? [] : drillPath.slice(0, idx+1); renderExplorer();
+  }));
+}
+function renderExplorer(){
+  const ds = currentDataset();
+  document.getElementById("explorerCatTag").textContent = ds.label;
+  renderCrumbs(ds);
+  const node = currentNode();
+  const items = node ? ds.items.filter(it=>isWithinSubtree(node, it.orgNodeId)) : ds.items;
+  document.getElementById("explorerCount").textContent = `${items.length.toLocaleString('ar-EG')} عنصر ضمن العرض الحالي`;
+  const field = statusFieldOf(ds), good = goodStatusOf(ds);
+  const body = document.getElementById("explorerBody");
+  if(items.length===0){ body.innerHTML = `<div class="empty-msg">لا توجد بيانات ضمن هذا التصنيف</div>`; return; }
+  const childNodes = node ? node.children : state.orgTree;
+  if(childNodes.length>0){
+    let html = `<div class="node-grid">`;
+    childNodes.forEach(child=>{
+      const arr = ds.items.filter(it=>isWithinSubtree(child, it.orgNodeId));
+      const goodN = arr.filter(x=>x[field]===good).length;
+      const pct = arr.length? Math.round(goodN/arr.length*100):0;
+      html += `<div class="node-card ${nodeColorClass(pct)}" data-node="${child.id}"><div class="np">${pct}%</div><div class="nn">${child.name}</div><div class="nc">${arr.length} عنصر</div></div>`;
+    });
+    html += `</div>`; body.innerHTML = html;
+    body.querySelectorAll("[data-node]").forEach(el=>el.addEventListener("click", ()=>{ drillPath.push(el.dataset.node); renderExplorer(); }));
+  }else{
+    if(ds.kind==="person"){
+      let html = `<div style="overflow-x:auto;"><table><thead><tr><th>الاسم</th><th>الرتبة</th><th>الوظيفة</th><th>الحالة</th><th>الجاهزية</th></tr></thead><tbody>`;
+      items.forEach(p=>{ html += `<tr data-pid="${p.id}"><td>${p.name}</td><td>${p.rank}</td><td>${p.job}</td><td><span class="pill ${statusPillClass(p.status)}">${p.status}</span></td><td><span class="pill ${readinessPillClass(p.readiness)}">${p.readiness}</span></td></tr>`; });
+      html += `</tbody></table></div>`; body.innerHTML = html;
+      body.querySelectorAll("tr[data-pid]").forEach(tr=>tr.addEventListener("click", ()=>openProfileModal(parseInt(tr.dataset.pid))));
+    }else{
+      const mod = ds.module;
+      let html = `<div style="overflow-x:auto;"><table><thead><tr><th>الصنف</th><th>الحالة</th>${mod.hasQuantity?"<th>الكمية</th>":""}</tr></thead><tbody>`;
+      items.forEach(r=>{ html += `<tr><td>${r.title}</td><td><span class="pill ${r.status===mod.statuses[0]?'active':(r.status===mod.statuses[1]?'leave':'sick')}">${r.status}</span></td>${mod.hasQuantity?`<td>${r.quantity}</td>`:""}</tr>`; });
+      html += `</tbody></table></div><div style="margin-top:9px;"><button class="btn-sm" id="addRecordBtn">➕ إضافة سجل هنا</button></div>`;
+      body.innerHTML = html;
+      document.getElementById("addRecordBtn").addEventListener("click", ()=>openRecordModal(mod));
+    }
+  }
+}
+function statusPillClass(s){ return s==="نشط"?"active":s==="إجازة"?"leave":s==="دورة"?"training":"sick"; }
+function readinessPillClass(r){ return r==="جاهز"?"active":r==="غير جاهز"?"leave":"sick"; }
+
+function explorerAllColumns(){
+  const ds = currentDataset();
+  if(ds.kind==="person") return [
+    {key:'name',label:'الاسم'},{key:'rank',label:'الرتبة'},{key:'org',label:'الفرع التنظيمي'},
+    {key:'job',label:'الوظيفة'},{key:'status',label:'الحالة'},{key:'readiness',label:'الجاهزية'}
+  ];
+  return [ {key:'title',label:'الصنف'},{key:'status',label:'الحالة'},{key:'quantity',label:'الكمية'},{key:'org',label:'الفرع التنظيمي'} ];
+}
+function explorerRows(selectedKeys){
+  const ds = currentDataset(); const node = currentNode();
+  const items = node ? ds.items.filter(it=>isWithinSubtree(node, it.orgNodeId)) : ds.items;
+  const allCols = explorerAllColumns();
+  const cols = selectedKeys? allCols.filter(c=>selectedKeys.includes(c.key)) : allCols;
+  const valueOf = (it,key)=>{
+    if(ds.kind==="person"){
+      if(key==='name') return it.name; if(key==='rank') return it.rank; if(key==='org') return pathLabel(it.orgNodeId);
+      if(key==='job') return it.job; if(key==='status') return it.status; if(key==='readiness') return it.readiness;
+    }else{
+      if(key==='title') return it.title; if(key==='status') return it.status; if(key==='quantity') return it.quantity||"-"; if(key==='org') return pathLabel(it.orgNodeId);
+    }
+    return "-";
+  };
+  return { header: cols.map(c=>c.label), rows: items.map(it=>cols.map(c=>valueOf(it,c.key))), title: ds.label };
+}
+function exportExplorerCsv(){ openColumnPickerModal(explorerAllColumns(), "explorer", "تصدير استكشاف الجاهزية", (keys)=>{ const {header, rows, title} = explorerRows(keys); exportTableAsExcel(title, [{header, rows}]); }); }
+function exportExplorerPdf(){ openColumnPickerModal(explorerAllColumns(), "explorer", "طباعة استكشاف الجاهزية (PDF)", (keys)=>{ const {header, rows, title} = explorerRows(keys); firePrint(buildPrintable(title, header, rows)); }); }
+function printExplorer(){ openColumnPickerModal(explorerAllColumns(), "explorer", "طباعة استكشاف الجاهزية", (keys)=>{ const {header, rows, title} = explorerRows(keys); firePrint(buildPrintable(title, header, rows)); }); }
+document.getElementById("expCsv").addEventListener("click", exportExplorerCsv);
+document.getElementById("expPdf").addEventListener("click", exportExplorerPdf);
+document.getElementById("expPrint").addEventListener("click", printExplorer);
+
+/* ======================= MODULES ======================= */
+function openModuleCreateModal(){
+  document.getElementById("modalRoot").innerHTML = `<div class="overlay" id="modalOverlay"><div class="modal">
+    <h3>إضافة قسم بيانات جديد</h3>
+    <div class="field"><label>اسم القسم</label><input id="m_name" placeholder="التسليح"></div>
+    <div class="field"><label>أيقونة</label><input id="m_icon" value="📦" maxlength="2"></div>
+    <div class="field"><label>اللون</label><select id="m_color">${MODULE_COLORS.map(c=>`<option value="${c}">${c}</option>`).join("")}</select></div>
+    <div class="field"><label>الحالات (مفصولة بفاصلة، الأولى = جيدة)</label><input id="m_statuses" placeholder="صالح,صيانة,عاطل"></div>
+    <div class="field"><label><input type="checkbox" id="m_qty" style="width:auto;" checked> تتبع كمية رقمية</label></div>
+    <div class="modal-actions"><button class="btn ghost" id="modalCancel">إلغاء</button><button class="btn gold" id="modalSave">إنشاء القسم</button></div>
+  </div></div>`;
+  document.getElementById("modalCancel").addEventListener("click", closeModal);
+  document.getElementById("modalOverlay").addEventListener("click", e=>{ if(e.target.id==="modalOverlay") closeModal(); });
+  document.getElementById("modalSave").addEventListener("click", ()=>{
+    const name = document.getElementById("m_name").value.trim(); if(!name){ alert("الرجاء إدخال اسم القسم"); return; }
+    const statuses = document.getElementById("m_statuses").value.split(",").map(s=>s.trim()).filter(Boolean);
+    if(statuses.length<1){ alert("الرجاء إدخال حالة واحدة على الأقل"); return; }
+    state.modules.push({ id:"m"+Date.now(), name, icon: document.getElementById("m_icon").value.trim()||"📦", color: document.getElementById("m_color").value, statuses, hasQuantity: document.getElementById("m_qty").checked, records: [] });
+    state.dashboardConfig.moduleVisibility["m"+Date.now()] = true;
+    save(); closeModal(); renderStatsRow(); toast(`تم إنشاء قسم "${name}"`);
+  });
+}
+function openRecordModal(mod){
+  const node = currentNode();
+  document.getElementById("modalRoot").innerHTML = `<div class="overlay" id="modalOverlay"><div class="modal">
+    <h3>إضافة سجل - ${mod.name}</h3>
+    <p class="note" style="margin-bottom:9px;">سيتم ربط السجل بالموقع: ${node? pathLabel(node.id): "غير محدد"}</p>
+    <div class="field"><label>العنوان / الصنف</label><input id="r_title"></div>
+    <div class="field"><label>الحالة</label><select id="r_status">${mod.statuses.map(s=>`<option>${s}</option>`).join("")}</select></div>
+    ${mod.hasQuantity? `<div class="field"><label>الكمية</label><input type="number" min="0" id="r_qty" value="1"></div>` : ""}
+    <div class="modal-actions"><button class="btn ghost" id="modalCancel">إلغاء</button><button class="btn gold" id="modalSave">إضافة</button></div>
+  </div></div>`;
+  document.getElementById("modalCancel").addEventListener("click", closeModal);
+  document.getElementById("modalOverlay").addEventListener("click", e=>{ if(e.target.id==="modalOverlay") closeModal(); });
+  document.getElementById("modalSave").addEventListener("click", ()=>{
+    const title = document.getElementById("r_title").value.trim(); if(!title){ alert("الرجاء إدخال العنوان"); return; }
+    mod.records.push({ id:(Math.max(0,...mod.records.map(x=>x.id))+1), title, status: document.getElementById("r_status").value, quantity: mod.hasQuantity? (parseInt(document.getElementById("r_qty").value)||0) : undefined, orgNodeId: node? node.id : null });
+    save(); closeModal(); renderStatsRow(); renderExplorer(); toast("تمت إضافة السجل وتحديث اللوحة فورًا");
+  });
+}
+
+/* ======================= DONUT + LINE CHART ======================= */
+function renderDonut(){
+  const counts = {}; ALL_RANKS.forEach(r=>counts[r]=0);
+  activePersonnel().forEach(p=>counts[p.rank]=(counts[p.rank]||0)+1);
+  const total = activePersonnel().length || 1;
+  let acc = 0; const segs = []; const legendItems = [];
+  ALL_RANKS.forEach((r,i)=>{ const c = counts[r]; if(c===0) return; const pct = c/total*100; const color = RANK_COLORS[i % RANK_COLORS.length]; segs.push(`${color} ${acc}% ${acc+pct}%`); legendItems.push({r,c,pct,color}); acc += pct; });
+  document.getElementById("donutChart").style.background = `conic-gradient(${segs.join(",")})`;
+  document.getElementById("donutTotal").textContent = total.toLocaleString('ar-EG');
+  document.getElementById("donutLegend").innerHTML = legendItems.map(li=>`<li><span><span class="dot" style="background:${li.color}"></span>${li.r}</span><b>${li.c} (${li.pct.toFixed(1)}%)</b></li>`).join("");
+}
+function renderLineChart(){
+  const now = new Date(); const months = [];
+  for(let i=11;i>=0;i--){ const d = new Date(now.getFullYear(), now.getMonth()-i, 1); months.push({y:d.getFullYear(), m:d.getMonth(), label:d.toLocaleDateString('ar-EG',{month:'short'})}); }
+  const counts = months.map(mo=> activePersonnel().filter(p=>{ const jd=new Date(p.joinDate); return jd.getFullYear()===mo.y && jd.getMonth()===mo.m; }).length);
+  let running = activePersonnel().length - counts.reduce((a,b)=>a+b,0);
+  const cum = counts.map(c=>{ running+=c; return running; });
+  const max = Math.max(...cum,1), min = Math.min(...cum,0);
+  const w=600,h=210,padL=30,padB=24,padT=10;
+  const stepX = (w-padL-10)/(cum.length-1);
+  const scaleY = v => padT + (h-padT-padB) * (1-(v-min)/((max-min)||1));
+  let pts = cum.map((v,i)=>[padL+i*stepX, scaleY(v)]);
+  let path = "M"+pts.map(p=>p.join(",")).join(" L");
+  let area = path + ` L${pts[pts.length-1][0]},${h-padB} L${pts[0][0]},${h-padB} Z`;
+  const trendPct = cum[0]? Math.round((cum[cum.length-1]-cum[0])/cum[0]*100) : 0;
+  document.getElementById("trendTag").textContent = (trendPct>=0?"+":"")+trendPct+"%";
+  let svg = `<defs><linearGradient id="grad1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2f7bd1" stop-opacity="0.55"/><stop offset="100%" stop-color="#2f7bd1" stop-opacity="0"/></linearGradient></defs>`;
+  svg += `<path d="${area}" fill="url(#grad1)"/><path d="${path}" fill="none" stroke="#4fa3ff" stroke-width="2.5"/>`;
+  pts.forEach((p,i)=>{ svg += `<circle cx="${p[0]}" cy="${p[1]}" r="3.2" fill="#eaf0fb"/><text x="${p[0]}" y="${h-6}" font-size="9" fill="#8ea0c7" text-anchor="middle">${months[i].label}</text>`; });
+  for(let g=0; g<=3; g++){ const gy = padT + (h-padT-padB)*g/3; svg += `<line x1="${padL}" y1="${gy}" x2="${w-10}" y2="${gy}" stroke="#1c2f57" stroke-width="1"/>`; }
+  document.getElementById("lineChart").innerHTML = svg;
+}
+
+/* ======================= BOTTOM CARDS ======================= */
+function ringSVG(pct,color){ const r=22, c=2*Math.PI*r; const off = c*(1-pct/100); return `<svg width="52" height="52"><circle cx="26" cy="26" r="${r}" stroke="#1c2f57" stroke-width="6" fill="none"/><circle cx="26" cy="26" r="${r}" stroke="${color}" stroke-width="6" fill="none" stroke-dasharray="${c}" stroke-dashoffset="${off}" stroke-linecap="round"/></svg>`; }
+function renderBottomCards(){
+  const p = activePersonnel();
+  const totalTrainings = state.trainings.length;
+  const doneTrainings = state.trainings.filter(t=>t.status==="مكتملة").length;
+  const trainPct = totalTrainings? Math.round(doneTrainings/totalTrainings*100) : 0;
+  const onDutyToday = p.filter(x=>x.onDutyToday).length;
+  const attPct = p.length? Math.round((p.length-p.filter(x=>x.status==="عيادة").length)/p.length*100) : 0;
+  const healthy = p.length - p.filter(x=>x.status==="عيادة").length;
+  const healthPct = p.length? Math.round(healthy/p.length*100) : 0;
+  const leaveApproved = p.filter(x=>x.status==="إجازة").length;
+  const leavePct = p.length? Math.min(100, Math.round(leaveApproved/p.length*100*3)) : 0;
+  const promotable = p.filter(x=>x.trainingsCompleted>=3).length;
+  const promoPct = p.length? Math.round(promotable/p.length*100) : 0;
+  const cards = [
+    {cat:"training", title:"التدريب والدورات", sub:"إكمال التدريبات", pct: trainPct, color:"#4fa3ff", m:[["الدورات",totalTrainings],["قيد التنفيذ",state.trainings.filter(t=>t.status==="قيد التنفيذ").length],["مكتملة",doneTrainings]]},
+    {cat:"attendance", title:"النوبات والحضور", sub:"نسبة الحضور", pct: attPct, color:"#4ede8a", m:[["المناوبون اليوم",onDutyToday],["نشط",p.filter(x=>x.status==="نشط").length],["غياب",p.filter(x=>x.status==="عيادة").length]]},
+    {cat:"health", title:"الحالة الصحية", sub:"حالة ممتازة", pct: healthPct, color:"#4fd9de", m:[["ممتاز",healthy],["علاج",p.filter(x=>x.status==="عيادة").length],["إجمالي",p.length]]},
+    {cat:"leave", title:"الإجازات", sub:"إجازات نشطة", pct: leavePct, color:"#e8c65a", m:[["حالياً",leaveApproved],["إجمالي الأفراد",p.length],["نسبة",Math.round(leaveApproved/(p.length||1)*100)+"%"]]},
+    {cat:"promotions", title:"الترقيات", sub:"مؤهلون للترقية", pct: promoPct, color:"#c46bd6", m:[["مؤهل",promotable],["غير مؤهل",p.length-promotable],["إجمالي",p.length]]},
+  ];
+  document.getElementById("bottomRow").innerHTML = cards.map(c=>`
+    <div class="card2 ${c.cat===currentCat?'active-cat':''}" data-cat="${c.cat}">
+      <div class="head"><div><h4>${c.title}</h4><p>${c.sub}</p></div><div class="ring">${ringSVG(c.pct,c.color)}<div class="val">${c.pct}%</div></div></div>
+      <div class="mini-stats">${c.m.map(x=>`<div>${x[0]}<b>${x[1]}</b></div>`).join("")}</div>
+    </div>`).join("");
+  document.querySelectorAll(".card2[data-cat]").forEach(el=>el.addEventListener("click", ()=>setCategory(el.dataset.cat)));
+}
+
+/* ======================= ALERTS ======================= */
+function computeAlerts(){
+  const p = activePersonnel();
+  const auto = [
+    {t:`أفراد بدون دورة تدريبية`, n:p.filter(x=>x.trainingsCompleted===0).length, cls:"warn"},
+    {t:`أفراد في العيادة`, n:p.filter(x=>x.status==="عيادة").length, cls:""},
+    {t:`أفراد متخلفون عن الجاهزية`, n:p.filter(x=>x.readiness==="متخلف").length, cls:"warn"},
+    {t:`أفراد في إجازة حالياً`, n:p.filter(x=>x.status==="إجازة").length, cls:""},
+    {t:`مؤهلون للترقية`, n:p.filter(x=>x.trainingsCompleted>=3).length, cls:"info"},
+  ];
+  state.modules.forEach(m=>{ const bad = m.records.filter(r=>r.status!==m.statuses[0]).length; if(bad>0) auto.push({t:`${m.name}: سجلات بحاجة لمتابعة`, n:bad, cls:"warn"}); });
+  const filtered = auto.filter(a=>a.n>0);
+  const custom = state.customAlerts.map(c=>({t:c.text,n:c.n||1,cls:"info"}));
+  return [...custom, ...filtered];
+}
+function renderAlerts(){
+  const alerts = computeAlerts();
+  document.getElementById("alertsList").innerHTML = alerts.length? alerts.map(a=>`<li class="${a.cls}"><span>${a.t}</span><b>${a.n}</b></li>`).join("") : `<li><span>لا توجد تنبيهات حالياً</span></li>`;
+  document.getElementById("alertCountTag").textContent = alerts.reduce((s,a)=>s+a.n,0);
+  document.getElementById("notifBadge").textContent = alerts.length;
+  document.getElementById("msgBadge").textContent = state.messages.length;
+}
+document.getElementById("addAlertInline").addEventListener("click", ()=>{
+  document.getElementById("modalRoot").innerHTML = `<div class="overlay" id="modalOverlay"><div class="modal"><h3>إضافة تنبيه يدوي</h3>
+  <div class="field"><label>نص التنبيه</label><input id="al_text"></div>
+  <div class="modal-actions"><button class="btn ghost" id="modalCancel">إلغاء</button><button class="btn gold" id="modalSave">إضافة</button></div></div></div>`;
+  document.getElementById("modalCancel").addEventListener("click", closeModal);
+  document.getElementById("modalOverlay").addEventListener("click", e=>{ if(e.target.id==="modalOverlay") closeModal(); });
+  document.getElementById("modalSave").addEventListener("click", ()=>{
+    const txt = document.getElementById("al_text").value.trim();
+    if(txt){ state.customAlerts.push({text:txt,n:1}); save(); renderAlerts(); toast("تمت إضافة التنبيه"); }
+    closeModal();
+  });
+});
+
+/* ======================= APPLY DASHBOARD CONFIG (visibility) ======================= */
+function applyDashboardConfig(){
+  const cfg = state.dashboardConfig;
+  document.getElementById("explorerPanelWrap").style.display = cfg.showExplorer? "":"none";
+  document.getElementById("donutPanel").style.display = cfg.showDonut? "":"none";
+  document.getElementById("linePanel").style.display = cfg.showLineChart? "":"none";
+  document.getElementById("chartsWrap").style.display = (cfg.showDonut||cfg.showLineChart)? "grid":"none";
+  document.getElementById("bottomRow").style.display = cfg.showBottomCards? "grid":"none";
+  document.getElementById("qaPanel").style.display = cfg.showQuickActions? "":"none";
+  document.getElementById("alertsPanel").style.display = cfg.showAlerts? "":"none";
+}
+
+/* ======================= DASHBOARD MASTER RENDER ======================= */
+function renderDashboard(){
+  applyDashboardConfig();
+  renderStatsRow(); renderExplorer(); renderDonut(); renderLineChart(); renderBottomCards(); renderAlerts();
+  document.getElementById("footCount").textContent = activePersonnel().length.toLocaleString('ar-EG');
+  document.getElementById("orgTitle").textContent = state.org.name;
+  document.getElementById("orgNameLbl").textContent = state.org.name;
+  document.getElementById("cmdName").textContent = state.org.cmd;
+}
+
+/* ======================= PERSONNEL VIEW ======================= */
+function fillRankUnitFilters(){
+  const rankSel = document.getElementById("pFilterRank"); const unitSel = document.getElementById("pFilterUnit");
+  const curRank = rankSel.value, curUnit = unitSel.value;
+  rankSel.innerHTML = `<option value="">كل الرتب</option>` + ALL_RANKS.map(r=>`<option ${r===curRank?"selected":""} value="${r}">${r}</option>`).join("");
+  unitSel.innerHTML = `<option value="">كل الفروع الرئيسية</option>` + state.orgTree.map(n=>`<option ${n.id===curUnit?"selected":""} value="${n.id}">${n.name}</option>`).join("");
+}
+function getFilteredPersonnel(){
+  const q = document.getElementById("pSearch").value.trim().toLowerCase();
+  const fr = document.getElementById("pFilterRank").value; const fu = document.getElementById("pFilterUnit").value; const fs = document.getElementById("pFilterStatus").value;
+  return activePersonnel().filter(p=>{
+    if(fr && p.rank!==fr) return false;
+    if(fu){ const n=nodeById(fu); if(!n || !isWithinSubtree(n,p.orgNodeId)) return false; }
+    if(fs && p.status!==fs) return false;
+    if(q){
+      const custVals = Object.values(p.customData||{});
+      const hay = [p.id,p.name,p.rank,pathLabel(p.orgNodeId),p.job,p.status,p.readiness,p.joinDate,p.trainingsCompleted,...custVals].join(" ").toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+function personnelTableHead(){
+  let extra = state.customFields.map(f=>`<th>${f.label}</th>`).join("");
+  document.getElementById("personnelHead").innerHTML = `<tr><th>#</th><th>الاسم</th><th>الرتبة</th><th>الفرع التنظيمي</th><th>الوظيفة</th><th>الجاهزية</th><th>الحالة</th><th>تاريخ الالتحاق</th><th>دورات</th>${extra}<th>إجراءات</th></tr>`;
+}
+function renderPersonnel(){
+  fillRankUnitFilters(); personnelTableHead();
+  const rawQ = document.getElementById("pSearch").value.trim();
+  const list = getFilteredPersonnel();
+  document.getElementById("personnelBody").innerHTML = list.map(p=>{
+    const extra = state.customFields.map(f=>`<td>${highlightMatch(p.customData[f.id]||"-",rawQ)}</td>`).join("");
+    return `<tr data-pid="${p.id}">
+      <td>${highlightMatch(p.id,rawQ)}</td><td>${highlightMatch(p.name,rawQ)}</td><td>${highlightMatch(p.rank,rawQ)}</td>
+      <td>${highlightMatch(pathLabel(p.orgNodeId),rawQ)}</td><td>${highlightMatch(p.job,rawQ)}</td>
+      <td><span class="pill ${readinessPillClass(p.readiness)}">${highlightMatch(p.readiness,rawQ)}</span></td>
+      <td><span class="pill ${statusPillClass(p.status)}">${highlightMatch(p.status,rawQ)}</span></td>
+      <td>${highlightMatch(p.joinDate,rawQ)}</td><td>${highlightMatch(p.trainingsCompleted,rawQ)}</td>${extra}
+      <td class="row-actions"><button data-edit="${p.id}" title="تعديل (يتطلب سبب)">✏️</button><button data-admin="${p.id}" title="نقل / تحويل / فصل">🔁</button></td>
+    </tr>`;
+  }).join("");
+  document.getElementById("pCount").textContent = `عرض ${list.length} من أصل ${activePersonnel().length} فرد نشط`;
+  document.querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click",(e)=>{ e.stopPropagation(); openPersonModal(parseInt(b.dataset.edit)); }));
+  document.querySelectorAll("[data-admin]").forEach(b=>b.addEventListener("click",(e)=>{ e.stopPropagation(); openAdminStatusModal(parseInt(b.dataset.admin)); }));
+}
+["pSearch","pFilterRank","pFilterUnit","pFilterStatus"].forEach(id=>{ document.getElementById(id).addEventListener("input", renderPersonnel); document.getElementById(id).addEventListener("change", renderPersonnel); });
+document.getElementById("addPersonBtn").addEventListener("click", ()=>openPersonModal(null));
+document.getElementById("exportCsvBtn").addEventListener("click", exportPersonnelCSV);
+document.getElementById("exportPdfBtn").addEventListener("click", exportPersonnelPdf);
+document.getElementById("printBtn").addEventListener("click", printPersonnelList);
+document.getElementById("personnelBody").addEventListener("click", e=>{
+  if(e.target.closest(".row-actions")) return;
+  const tr = e.target.closest("tr[data-pid]"); if(!tr) return;
+  openProfileModal(parseInt(tr.dataset.pid));
+});
+
+function leafOptionsHtml(selectedId){
+  const leaves = allLeaves(state.orgTree);
+  if(leaves.length===0) return `<option value="">لا توجد فروع - أضف من الإعدادات</option>`;
+  return leaves.map(n=>`<option value="${n.id}" ${n.id===selectedId?"selected":""}>${pathLabel(n.id)}</option>`).join("");
+}
+function customFieldsHtml(p){
+  if(state.customFields.length===0) return "";
+  return `<div class="field"><label style="color:var(--gold-l);">حقول إضافية</label></div>` + state.customFields.map(f=>{
+    const val = (p.customData && p.customData[f.id]) || "";
+    const type = f.type==="number"?"number":f.type==="date"?"date":"text";
+    return `<div class="field"><label>${f.label}${f.required?" *":""}</label><input type="${type}" data-custom="${f.id}" value="${escapeHtml(val)}"></div>`;
+  }).join("");
+}
+function openPersonModal(id){
+  const editing = id!==null;
+  const p = editing? state.personnel.find(x=>x.id===id) : {name:"",rank:ALL_RANKS[0],orgNodeId:(allLeaves(state.orgTree)[0]||{}).id,job:"عادي",status:"نشط",readiness:"جاهز",joinDate:new Date().toISOString().slice(0,10),trainingsCompleted:0,onDutyToday:false,customData:{}};
+  const html = `<div class="overlay" id="modalOverlay"><div class="modal">
+    <h3>${editing?"تعديل بيانات فرد":"إضافة فرد جديد"}</h3>
+    ${editing? `<div class="reason-box">⚠️ أي تعديل يتطلب سببًا واضحًا وسيُسجَّل في سجل التعديلات وملف الفرد.</div>
+    <div class="field"><label>سبب التعديل (إلزامي)</label><input id="f_reason" placeholder="مثال: تصحيح بيانات، تحديث بعد الترقية..."></div>` : ""}
+    <div class="field"><label>الاسم</label><input id="f_name" value="${p.name}"></div>
+    <div class="field"><label>الرتبة</label><select id="f_rank">${ALL_RANKS.map(r=>`<option ${r===p.rank?"selected":""}>${r}</option>`).join("")}</select></div>
+    <div class="field"><label>الفرع التنظيمي</label><select id="f_org">${leafOptionsHtml(p.orgNodeId)}</select></div>
+    <div class="field"><label>الوظيفة</label><select id="f_job">${JOBS.map(j=>`<option ${j===p.job?"selected":""}>${j}</option>`).join("")}</select></div>
+    <div class="field"><label>الجاهزية</label><select id="f_ready">${READINESS.map(r=>`<option ${r===p.readiness?"selected":""}>${r}</option>`).join("")}</select></div>
+    <div class="field"><label>الحالة</label><select id="f_status">${STATUSES.map(s=>`<option ${s===p.status?"selected":""}>${s}</option>`).join("")}</select></div>
+    <div class="field"><label>تاريخ الالتحاق</label><input type="date" id="f_join" value="${p.joinDate}"></div>
+    <div class="field"><label>عدد الدورات المكتملة</label><input type="number" min="0" id="f_train" value="${p.trainingsCompleted}"></div>
+    <div class="field"><label><input type="checkbox" id="f_duty" ${p.onDutyToday?"checked":""} style="width:auto;"> مناوب اليوم</label></div>
+    ${customFieldsHtml(p)}
+    <div class="modal-actions"><button class="btn ghost" id="modalCancel">إلغاء</button><button class="btn gold" id="modalSave">${editing?"حفظ التعديلات":"إضافة"}</button></div>
+  </div></div>`;
+  document.getElementById("modalRoot").innerHTML = html;
+  document.getElementById("modalCancel").addEventListener("click", closeModal);
+  document.getElementById("modalOverlay").addEventListener("click", e=>{ if(e.target.id==="modalOverlay") closeModal(); });
+  document.getElementById("modalSave").addEventListener("click", ()=>{
+    let reasonText = "";
+    if(editing){ reasonText = document.getElementById("f_reason").value.trim(); if(!reasonText){ alert("الرجاء إدخال سبب التعديل"); return; } }
+    const customData = {};
+    for(const f of state.customFields){
+      const el = document.querySelector(`[data-custom="${f.id}"]`);
+      const val = el? el.value.trim() : "";
+      if(f.required && !val){ alert(`الحقل "${f.label}" إلزامي`); return; }
+      customData[f.id] = val;
+    }
+    const oldVals = editing? {name:p.name, rank:p.rank, orgNodeId:p.orgNodeId, job:p.job, readiness:p.readiness, status:p.status, trainingsCompleted:p.trainingsCompleted} : null;
+    const data = {
+      name: document.getElementById("f_name").value.trim() || "بدون اسم", rank: document.getElementById("f_rank").value,
+      orgNodeId: document.getElementById("f_org").value, job: document.getElementById("f_job").value,
+      readiness: document.getElementById("f_ready").value, status: document.getElementById("f_status").value,
+      joinDate: document.getElementById("f_join").value, trainingsCompleted: parseInt(document.getElementById("f_train").value)||0,
+      onDutyToday: document.getElementById("f_duty").checked, customData
+    };
+    if(editing){
+      Object.assign(p, data);
+      if(!p.history) p.history=[];
+      const labels = {name:"الاسم",rank:"الرتبة",orgNodeId:"الفرع",job:"الوظيفة",readiness:"الجاهزية",status:"الحالة",trainingsCompleted:"الدورات"};
+      const changes = [];
+      Object.keys(labels).forEach(f=>{ const ov = f==="orgNodeId"? pathLabel(oldVals[f]) : oldVals[f]; const nv = f==="orgNodeId"? pathLabel(data[f]) : data[f]; if(String(ov)!==String(nv)) changes.push(`${labels[f]}: ${ov} ← ${nv}`); });
+      const summary = changes.length? changes.join("، ") : "لا تغييرات في البيانات الأساسية";
+      p.history.push({date:todayStr(), type:"تعديل", detail:`سبب: ${reasonText}. ${summary}`});
+      state.editLog.push({date:todayStr(), personId:p.id, personName:p.name, reason:reasonText, detail:summary});
+      save(); closeModal(); renderPersonnel(); renderDashboard();
+      toast("تم حفظ التعديلات وتسجيلها في السجل");
+    }else{
+      if(!confirm(`تأكيد إضافة الفرد "${data.name}" إلى النظام؟`)) return;
+      data.id = (Math.max(0,...state.personnel.map(x=>x.id))+1);
+      data.adminStatus = "نشط"; data.adminReason=null; data.adminDate=null;
+      data.history = [{date:data.joinDate, type:"التحاق", detail:`تم تسجيل الفرد في النظام برتبة ${data.rank}`}];
+      state.personnel.push(data);
+      save(); closeModal(); renderPersonnel(); renderDashboard();
+      toast("تمت إضافة الفرد بنجاح");
+    }
+  });
+}
+function closeModal(){ document.getElementById("modalRoot").innerHTML=""; }
+
+function openAdminStatusModal(id){
+  const p = state.personnel.find(x=>x.id===id); if(!p) return;
+  document.getElementById("modalRoot").innerHTML = `<div class="overlay" id="modalOverlay"><div class="modal">
+    <h3>نقل / تحويل / فصل - ${p.name}</h3>
+    <p class="note" style="margin-bottom:9px;">لن يُحذف الفرد، سينتقل إلى الأرشيف مع الاحتفاظ الكامل بسجله.</p>
+    <div class="field"><label>الحالة الإدارية الجديدة</label><select id="as_status">${ADMIN_STATUSES.map(s=>`<option>${s}</option>`).join("")}</select></div>
+    <div class="field"><label>السبب (إلزامي)</label><textarea id="as_reason" rows="3"></textarea></div>
+    <div class="field"><label>التاريخ</label><input type="date" id="as_date" value="${todayStr()}"></div>
+    <div class="modal-actions"><button class="btn ghost" id="modalCancel">إلغاء</button><button class="btn gold" id="modalSave">تأكيد</button></div>
+  </div></div>`;
+  document.getElementById("modalCancel").addEventListener("click", closeModal);
+  document.getElementById("modalOverlay").addEventListener("click", e=>{ if(e.target.id==="modalOverlay") closeModal(); });
+  document.getElementById("modalSave").addEventListener("click", ()=>{
+    const status = document.getElementById("as_status").value; const reason = document.getElementById("as_reason").value.trim(); const date = document.getElementById("as_date").value || todayStr();
+    if(!reason){ alert("الرجاء إدخال السبب"); return; }
+    p.adminStatus = status; p.adminReason = reason; p.adminDate = date;
+    if(!p.history) p.history=[];
+    p.history.push({date, type:"حالة إدارية", detail:`${status} - السبب: ${reason}`});
+    save(); closeModal(); renderPersonnel(); renderDashboard();
+    toast(`تم نقل الفرد إلى الأرشيف (${status})`);
+  });
+}
+
+function personnelAllColumns(){
+  const base = [
+    {key:'id',label:'الرقم'},{key:'name',label:'الاسم'},{key:'rank',label:'الرتبة'},{key:'org',label:'الفرع التنظيمي'},
+    {key:'job',label:'الوظيفة'},{key:'readiness',label:'الجاهزية'},{key:'status',label:'الحالة'},
+    {key:'joinDate',label:'تاريخ الالتحاق'},{key:'trainings',label:'عدد الدورات'}
+  ];
+  state.customFields.forEach(f=> base.push({key:'cf_'+f.id, label:f.label}));
+  return base;
+}
+function personnelColValue(p,key){
+  switch(key){
+    case 'id': return p.id; case 'name': return p.name; case 'rank': return p.rank; case 'org': return pathLabel(p.orgNodeId);
+    case 'job': return p.job; case 'readiness': return p.readiness; case 'status': return p.status;
+    case 'joinDate': return p.joinDate; case 'trainings': return p.trainingsCompleted;
+    default: if(key.indexOf('cf_')===0){ return (p.customData && p.customData[key.slice(3)]) || "-"; } return "-";
+  }
+}
+function personnelExportRows(selectedKeys){
+  const list = getFilteredPersonnel();
+  const allCols = personnelAllColumns();
+  const cols = selectedKeys? allCols.filter(c=>selectedKeys.includes(c.key)) : allCols;
+  return { header: cols.map(c=>c.label), rows: list.map(p=>cols.map(c=>personnelColValue(p,c.key))), title: "سجل الأفراد" };
+}
+function exportPersonnelCSV(){ openColumnPickerModal(personnelAllColumns(), "personnel", "تصدير سجل الأفراد", (keys)=>{ const {header, rows, title} = personnelExportRows(keys); exportTableAsExcel(title, [{header, rows}]); }); }
+function exportPersonnelPdf(){ openColumnPickerModal(personnelAllColumns(), "personnel", "طباعة سجل الأفراد (PDF)", (keys)=>{ const {header, rows, title} = personnelExportRows(keys); firePrint(buildPrintable(title, header, rows)); }); }
+function printPersonnelList(){ openColumnPickerModal(personnelAllColumns(), "personnel", "طباعة سجل الأفراد", (keys)=>{ const {header, rows, title} = personnelExportRows(keys); firePrint(buildPrintable(title, header, rows)); }); }
+
+function openProfileModal(id){
+  const p = state.personnel.find(x=>x.id===id); if(!p) return;
+  const hist = [...(p.history||[])].sort((a,b)=> new Date(b.date)-new Date(a.date));
+  const histHtml = hist.length? hist.map(h=>`<li><b>${h.date}</b> — ${h.type}: ${h.detail}</li>`).join("") : "<li>لا يوجد سجل تاريخي</li>";
+  const customHtml = state.customFields.map(f=>`<div><b>${f.label}:</b> ${p.customData[f.id]||"-"}</div>`).join("");
+  document.getElementById("modalRoot").innerHTML = `<div class="overlay" id="modalOverlay"><div class="modal modal-lg">
+    <h3>الملف الشخصي الكامل — ${p.name}</h3>
+    <div class="profile-grid">
+      <div><b>الرتبة:</b> ${p.rank}</div><div><b>الرقم:</b> ${p.id}</div>
+      <div><b>الفرع:</b> ${pathLabel(p.orgNodeId)}</div><div><b>الوظيفة:</b> ${p.job}</div>
+      <div><b>الحالة الحالية:</b> <span class="pill ${statusPillClass(p.status)}">${p.status}</span></div>
+      <div><b>الجاهزية:</b> <span class="pill ${readinessPillClass(p.readiness)}">${p.readiness}</span></div>
+      <div><b>تاريخ الالتحاق:</b> ${p.joinDate}</div><div><b>الدورات المكتملة:</b> ${p.trainingsCompleted}</div>
+      <div><b>الحالة الإدارية:</b> ${p.adminStatus||"نشط"}</div><div><b>مناوب اليوم:</b> ${p.onDutyToday?"نعم":"لا"}</div>
+      ${customHtml}
+    </div>
+    <h4 style="margin:14px 0 7px;color:var(--gold-l);">السجل الزمني الكامل (من الالتحاق حتى الآن، يشمل الدورات والمناوبات والترقيات)</h4>
+    <ul class="timeline">${histHtml}</ul>
+    <div class="modal-actions"><button class="btn ghost" id="modalCancel">إغلاق</button><button class="btn gold" id="profilePrint">🖨️ طباعة الملف</button></div>
+  </div></div>`;
+  document.getElementById("modalCancel").addEventListener("click", closeModal);
+  document.getElementById("modalOverlay").addEventListener("click", e=>{ if(e.target.id==="modalOverlay") closeModal(); });
+  document.getElementById("profilePrint").addEventListener("click", ()=>{
+    const rows = [["الرتبة",p.rank],["الرقم",p.id],["الفرع",pathLabel(p.orgNodeId)],["الوظيفة",p.job],["الحالة",p.status],["الجاهزية",p.readiness],["تاريخ الالتحاق",p.joinDate],["الدورات المكتملة",p.trainingsCompleted], ...hist.map(h=>[h.date, `${h.type}: ${h.detail}`])];
+    firePrint(buildPrintable(`الملف الشخصي - ${p.name}`, ["البند","القيمة"], rows));
+  });
+}
+
+/* ======================= ARCHIVE VIEW ======================= */
+function getArchivedPersonnel(){
+  const q = (document.getElementById("aSearch").value||"").trim().toLowerCase();
+  return state.personnel.filter(p=>(p.adminStatus||"نشط")!=="نشط").filter(p=>{
+    if(!q) return true;
+    const hay = [p.name,p.rank,pathLabel(p.orgNodeId),p.adminStatus,p.adminReason].join(" ").toLowerCase();
+    return hay.includes(q);
+  });
+}
+function renderArchive(){
+  const list = getArchivedPersonnel();
+  document.getElementById("archiveBody").innerHTML = list.length? list.map(p=>`
+    <tr data-pid="${p.id}"><td>${p.name}</td><td>${p.rank}</td><td>${pathLabel(p.orgNodeId)}</td>
+    <td><span class="pill sick">${p.adminStatus}</span></td><td>${p.adminReason||"-"}</td><td>${p.adminDate||"-"}</td>
+    <td class="row-actions"><button data-reactivate="${p.id}">↩️ إعادة تفعيل</button></td></tr>`).join("") : `<tr><td colspan="7" style="text-align:center;color:var(--muted);">لا يوجد أفراد بالأرشيف</td></tr>`;
+  document.querySelectorAll("[data-reactivate]").forEach(b=>b.addEventListener("click",(e)=>{
+    e.stopPropagation();
+    const p = state.personnel.find(x=>x.id===parseInt(b.dataset.reactivate));
+    if(p && confirm(`إعادة تفعيل ${p.name}؟`)){
+      const old = p.adminStatus; p.adminStatus="نشط"; p.adminReason=null; p.adminDate=null;
+      p.history.push({date:todayStr(), type:"حالة إدارية", detail:`إعادة تفعيل من حالة: ${old}`});
+      save(); renderArchive(); renderDashboard(); toast("تمت إعادة التفعيل");
+    }
+  }));
+  document.querySelectorAll("#archiveBody tr[data-pid]").forEach(tr=>tr.addEventListener("click", (e)=>{ if(e.target.closest(".row-actions")) return; openProfileModal(parseInt(tr.dataset.pid)); }));
+}
+document.getElementById("aSearch").addEventListener("input", renderArchive);
+
+/* ======================= CONFLICT DETECTION (training <-> duty) ======================= */
+function personActiveDuty(pid, onDate){
+  return state.duties.find(d=> onDate>=d.startDate && onDate<=d.endDate && (
+    (d.shift1.candidates.includes(pid) && !(d.shift1.exits && d.shift1.exits[pid])) ||
+    (d.shift2.candidates.includes(pid) && !(d.shift2.exits && d.shift2.exits[pid]))
+  ));
+}
+function personActiveTraining(pid, dateFrom, dateTo){
+  return state.trainings.find(t=> t.candidates.includes(pid) && t.date>=dateFrom && t.date<=dateTo);
+}
+
+/* ======================= TRAINING VIEW ======================= */
+document.getElementById("addTrainBtn").addEventListener("click", ()=>openTrainModal(null));
+function attendedCount(t){ return Object.values(t.attendance||{}).filter(a=>a.attended).length; }
+function absentCount(t){ return (t.candidates||[]).length - attendedCount(t); }
+function renderTraining(){
+  document.getElementById("trainBody").innerHTML = state.trainings.map((t,i)=>{
+    const hasAtt = t.finalizedDate!=null;
+    return `<tr><td>${t.name}</td><td>${t.date||"-"}</td><td>${t.status}</td><td>${(t.candidates||[]).length}</td>
+      <td>${hasAtt? attendedCount(t) : "-"}</td><td>${hasAtt? absentCount(t) : "-"}</td>
+      <td class="row-actions"><button data-cand="${i}" title="تحديد المرشحين">👥</button><button data-att="${i}" title="تسجيل الحضور">✅</button><button data-tedit="${i}" title="تعديل">✏️</button></td></tr>`;
+  }).join("");
+  document.querySelectorAll("[data-cand]").forEach(b=>b.addEventListener("click",()=>openCandidatesModal(state.trainings[parseInt(b.dataset.cand)])));
+  document.querySelectorAll("[data-att]").forEach(b=>b.addEventListener("click",()=>openAttendanceModal(state.trainings[parseInt(b.dataset.att)])));
+  document.querySelectorAll("[data-tedit]").forEach(b=>b.addEventListener("click",()=>openTrainModal(parseInt(b.dataset.tedit))));
+}
+function openTrainModal(idx){
+  const editing = idx!==null;
+  const t = editing? state.trainings[idx] : {name:"",status:"مجدولة",date:todayStr(),candidates:[],attendance:{},finalizedDate:null};
+  document.getElementById("modalRoot").innerHTML = `<div class="overlay" id="modalOverlay"><div class="modal">
+    <h3>${editing?"تعديل دورة":"إضافة دورة"}</h3>
+    <div class="field"><label>اسم الدورة</label><input id="t_name" value="${t.name}"></div>
+    <div class="field"><label>تاريخ الدورة</label><input type="date" id="t_date" value="${t.date}"></div>
+    <div class="field"><label>الحالة</label><select id="t_status">${["مجدولة","قيد التنفيذ","مكتملة"].map(s=>`<option ${s===t.status?"selected":""}>${s}</option>`).join("")}</select></div>
+    <div class="modal-actions"><button class="btn ghost" id="modalCancel">إلغاء</button><button class="btn gold" id="modalSave">حفظ</button></div>
+  </div></div>`;
+  document.getElementById("modalCancel").addEventListener("click", closeModal);
+  document.getElementById("modalOverlay").addEventListener("click", e=>{ if(e.target.id==="modalOverlay") closeModal(); });
+  document.getElementById("modalSave").addEventListener("click", ()=>{
+    const name = document.getElementById("t_name").value.trim()||"دورة جديدة";
+    const date = document.getElementById("t_date").value || todayStr();
+    const status = document.getElementById("t_status").value;
+    if(editing){ t.name=name; t.date=date; t.status=status; } else { state.trainings.push({id:(Math.max(0,...state.trainings.map(x=>x.id))+1), name, date, status, candidates:[], attendance:{}, finalizedDate:null}); }
+    save(); closeModal(); renderTraining(); renderDashboard();
+    toast("تم الحفظ بنجاح");
+  });
+}
+function openCandidatesModal(t){
+  const selected = new Set(t.candidates||[]);
+  function conflictBadge(p){
+    const conflict = personActiveDuty(p.id, t.date);
+    return conflict? `<span class="warn-badge" title="لديه نوبة (${conflict.name}) بهذا التاريخ">⚠️ نوبة</span>` : "";
+  }
+  function rowsHtml(filter){
+    return activePersonnel().filter(p=> !filter || (p.name+" "+p.id+" "+p.rank).toLowerCase().includes(filter.toLowerCase()))
+      .map(p=>`<label class="cand-row ${selected.has(p.id)?'cand-checked':''}" data-pid="${p.id}">
+        <input type="checkbox" ${selected.has(p.id)?"checked":""}> ${p.name} — ${p.rank} (#${p.id}) ${conflictBadge(p)}
+      </label>`).join("");
+  }
+  document.getElementById("modalRoot").innerHTML = `<div class="overlay" id="modalOverlay"><div class="modal modal-lg">
+    <h3>تحديد المرشحين - ${t.name} (${t.date})</h3>
+    <input type="text" id="candSearch" placeholder="🔍 بحث بالاسم أو الرقم أو الرتبة..." style="width:100%;margin-bottom:9px;padding:8px 9px;background:var(--navy-900);border:1px solid var(--line);color:var(--text);border-radius:8px;">
+    <div id="candList" class="cand-list">${rowsHtml("")}</div>
+    <p class="note">المحددون حاليًا: <b id="candCount">${selected.size}</b></p>
+    <div class="modal-actions"><button class="btn ghost" id="modalCancel">إلغاء</button><button class="btn gold" id="modalSave">حفظ المرشحين</button></div>
+  </div></div>`;
+  const listEl = document.getElementById("candList");
+  function wire(){ listEl.querySelectorAll(".cand-row").forEach(row=>{ row.querySelector("input").addEventListener("change", e=>{ const pid = parseInt(row.dataset.pid); if(e.target.checked) selected.add(pid); else selected.delete(pid); row.classList.toggle("cand-checked", e.target.checked); document.getElementById("candCount").textContent = selected.size; }); }); }
+  wire();
+  document.getElementById("candSearch").addEventListener("input", e=>{ listEl.innerHTML = rowsHtml(e.target.value); wire(); });
+  document.getElementById("modalCancel").addEventListener("click", closeModal);
+  document.getElementById("modalOverlay").addEventListener("click", e=>{ if(e.target.id==="modalOverlay") closeModal(); });
+  document.getElementById("modalSave").addEventListener("click", ()=>{
+    t.candidates = Array.from(selected);
+    Object.keys(t.attendance||{}).forEach(pid=>{ if(!selected.has(parseInt(pid))) delete t.attendance[pid]; });
+    save(); closeModal(); renderTraining();
+    toast(`تم تحديد ${t.candidates.length} مرشح`);
+  });
+}
+function openAttendanceModal(t){
+  if(!t.candidates || t.candidates.length===0){ alert("حدد المرشحين أولاً من زر 👥"); return; }
+  const oldAtt = t.attendance || {};
+  const work = {}; t.candidates.forEach(pid=>{ work[pid] = oldAtt[pid] ? {...oldAtt[pid]} : {attended:true, reason:""}; });
+  function personLabel(pid){ const p = state.personnel.find(x=>x.id===pid); return p? `${p.name} — ${p.rank} (#${p.id})` : `#${pid}`; }
+  function rowsHtml(filter){
+    return t.candidates.filter(pid=>{ if(!filter) return true; const p = state.personnel.find(x=>x.id===pid); return p && (p.name+" "+p.id+" "+p.rank).toLowerCase().includes(filter.toLowerCase()); })
+      .map(pid=>{ const s = work[pid]; return `<div class="att-row ${s.attended?'':'absent'}" data-pid="${pid}">
+        <span class="nm"><input type="checkbox" data-role="att" ${s.attended?"checked":""}> ${personLabel(pid)}</span>
+        <input type="text" data-role="reason" placeholder="سبب عدم الالتحاق..." value="${escapeHtml(s.reason||"")}" style="display:${s.attended?"none":"block"};"></div>`; }).join("");
+  }
+  document.getElementById("modalRoot").innerHTML = `<div class="overlay" id="modalOverlay"><div class="modal modal-lg">
+    <h3>تسجيل الحضور - ${t.name}</h3>
+    <input type="text" id="attSearch" placeholder="🔍 بحث بالاسم أو الرقم..." style="width:100%;margin-bottom:9px;padding:8px 9px;background:var(--navy-900);border:1px solid var(--line);color:var(--text);border-radius:8px;">
+    <div id="attList" class="cand-list">${rowsHtml("")}</div>
+    <p class="note">إذا لم يلتحق أحدهم، فك تحديد المربع بجانبه واكتب السبب — لن يتم الحفظ بدون سبب.</p>
+    <div class="modal-actions"><button class="btn ghost" id="modalCancel">إلغاء</button><button class="btn gold" id="modalSave">حفظ الحضور</button></div>
+  </div></div>`;
+  const listEl = document.getElementById("attList");
+  function wire(){ listEl.querySelectorAll(".att-row").forEach(row=>{ const pid = parseInt(row.dataset.pid); const cb = row.querySelector('[data-role="att"]'); const rin = row.querySelector('[data-role="reason"]');
+    cb.addEventListener("change", ()=>{ work[pid].attended = cb.checked; row.classList.toggle("absent", !cb.checked); rin.style.display = cb.checked? "none":"block"; });
+    rin.addEventListener("input", ()=>{ work[pid].reason = rin.value; }); }); }
+  wire();
+  document.getElementById("attSearch").addEventListener("input", e=>{ listEl.innerHTML = rowsHtml(e.target.value); wire(); });
+  document.getElementById("modalCancel").addEventListener("click", closeModal);
+  document.getElementById("modalOverlay").addEventListener("click", e=>{ if(e.target.id==="modalOverlay") closeModal(); });
+  document.getElementById("modalSave").addEventListener("click", ()=>{
+    const missing = t.candidates.filter(pid=> !work[pid].attended && !work[pid].reason.trim());
+    if(missing.length){ alert("الرجاء إدخال سبب عدم الالتحاق لـ: " + missing.map(personLabel).join("، ")); return; }
+    t.candidates.forEach(pid=>{
+      const p = state.personnel.find(x=>x.id===pid); const was = oldAtt[pid]; const now = work[pid]; if(!p) return;
+      if(!was || was.attended!==now.attended){
+        if(!p.history) p.history=[];
+        if(now.attended){ p.trainingsCompleted = (p.trainingsCompleted||0) + (was && was.attended? 0 : 1); p.history.push({date:todayStr(), type:"دورة", detail:`التحق بدورة: ${t.name}`}); }
+        else{ if(was && was.attended) p.trainingsCompleted = Math.max(0,(p.trainingsCompleted||0)-1); p.history.push({date:todayStr(), type:"دورة", detail:`لم يلتحق بدورة: ${t.name} - السبب: ${now.reason}`}); }
+      }
+    });
+    t.attendance = work; t.finalizedDate = todayStr(); t.status = "مكتملة";
+    save(); closeModal(); renderTraining(); renderDashboard();
+    toast("تم حفظ الحضور بنجاح");
+  });
+}
+
+/* ======================= DUTIES (two shifts, attendance, exits, conflicts) ======================= */
+document.getElementById("addDutyBtn").addEventListener("click", ()=>openDutyModal(null));
+function shiftAttended(sh){ return Object.values(sh.attendance||{}).filter(a=>a.attended).length; }
+function renderDuties(){
+  document.getElementById("dutyBody").innerHTML = state.duties.map((d,i)=>{
+    const s1 = d.shift1, s2 = d.shift2;
+    const s1txt = `${s1.candidates.length} مرشح${s1.finalizedDate? ` — حضر ${shiftAttended(s1)}`:""}`;
+    const s2txt = `${s2.candidates.length} مرشح${s2.finalizedDate? ` — حضر ${shiftAttended(s2)}`:""}`;
+    return `<tr><td>${d.name}<div class="note">${d.location||""}</div></td><td>${d.startDate} → ${d.endDate}</td><td>${s1txt}</td><td>${s2txt}</td>
+      <td class="row-actions"><button data-manage="${i}" title="إدارة النوبة">🛠️ إدارة</button><button data-dedit="${i}" title="تعديل">✏️</button></td></tr>`;
+  }).join("");
+  document.querySelectorAll("[data-manage]").forEach(b=>b.addEventListener("click", ()=>openDutyManageModal(state.duties[parseInt(b.dataset.manage)])));
+  document.querySelectorAll("[data-dedit]").forEach(b=>b.addEventListener("click", ()=>openDutyModal(parseInt(b.dataset.dedit))));
+}
+function openDutyModal(idx){
+  const editing = idx!==null;
+  const d = editing? state.duties[idx] : {name:"",location:"",startDate:todayStr(),endDate:addDays(todayStr(),9),shift1:{candidates:[],attendance:{},exits:{},finalizedDate:null},shift2:{candidates:[],attendance:{},exits:{},finalizedDate:null}};
+  document.getElementById("modalRoot").innerHTML = `<div class="overlay" id="modalOverlay"><div class="modal">
+    <h3>${editing?"تعديل نوبة":"إضافة نوبة جديدة"}</h3>
+    <div class="field"><label>اسم النوبة</label><input id="d_name" value="${d.name}" placeholder="نوبة حراسة..."></div>
+    <div class="field"><label>الموقع (مثال: التسليح، البوابة، المضادات)</label><input id="d_loc" value="${d.location||""}"></div>
+    <div class="field"><label>من تاريخ</label><input type="date" id="d_from" value="${d.startDate}"></div>
+    <div class="field"><label>إلى تاريخ</label><input type="date" id="d_to" value="${d.endDate}"></div>
+    <div class="modal-actions"><button class="btn ghost" id="modalCancel">إلغاء</button><button class="btn gold" id="modalSave">حفظ</button></div>
+  </div></div>`;
+  document.getElementById("modalCancel").addEventListener("click", closeModal);
+  document.getElementById("modalOverlay").addEventListener("click", e=>{ if(e.target.id==="modalOverlay") closeModal(); });
+  document.getElementById("modalSave").addEventListener("click", ()=>{
+    const name = document.getElementById("d_name").value.trim()||"نوبة جديدة";
+    const location = document.getElementById("d_loc").value.trim();
+    const startDate = document.getElementById("d_from").value; const endDate = document.getElementById("d_to").value;
+    if(editing){ d.name=name; d.location=location; d.startDate=startDate; d.endDate=endDate; }
+    else{ state.duties.push({id:(Math.max(0,...state.duties.map(x=>x.id))+1), name, location, startDate, endDate, shift1:{candidates:[],attendance:{},exits:{},finalizedDate:null}, shift2:{candidates:[],attendance:{},exits:{},finalizedDate:null}}); }
+    save(); closeModal(); renderDuties(); renderCalendar();
+    toast("تم الحفظ بنجاح");
+  });
+}
+function openDutyManageModal(d){
+  function shiftSummary(sh){ return `مرشحون: <b>${sh.candidates.length}</b>${sh.finalizedDate? ` — حاضر: <b>${shiftAttended(sh)}</b> — متخلف: <b>${sh.candidates.length-shiftAttended(sh)}</b>`:""}`; }
+  document.getElementById("modalRoot").innerHTML = `<div class="overlay" id="modalOverlay"><div class="modal modal-xl">
+    <h3>إدارة النوبة — ${d.name} (${d.startDate} → ${d.endDate})</h3>
+    <div class="grid2" style="margin-bottom:0;">
+      <div class="panel"><h3>النوبة الأولى</h3><p class="note">${shiftSummary(d.shift1)}</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+          <button class="btn-sm" id="s1cand">👥 تحديد أفراد</button>
+          <button class="btn-sm" id="s1att">✅ تسجيل حضور</button>
+        </div>
+        <div id="s1attendedList" style="margin-top:9px;"></div>
+      </div>
+      <div class="panel"><h3>النوبة الثانية</h3><p class="note">${shiftSummary(d.shift2)}</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+          <button class="btn-sm" id="s2cand">👥 تحديد أفراد</button>
+          <button class="btn-sm" id="s2att">✅ تسجيل حضور</button>
+        </div>
+        <div id="s2attendedList" style="margin-top:9px;"></div>
+      </div>
+    </div>
+    <div class="modal-actions"><button class="btn ghost" id="modalCancel">إغلاق</button></div>
+  </div></div>`;
+  function renderAttendedList(sh, containerId, shiftKey){
+    const container = document.getElementById(containerId);
+    if(!sh.finalizedDate){ container.innerHTML = `<p class="note">لم يُسجَّل الحضور بعد.</p>`; return; }
+    const rows = sh.candidates.map(pid=>{
+      const p = state.personnel.find(x=>x.id===pid); if(!p) return "";
+      const att = sh.attendance[pid]||{}; const exited = sh.exits && sh.exits[pid];
+      return `<div class="att-row ${att.attended?'':'absent'}">
+        <span class="nm">${p.name} — ${att.attended? '<span class="pill active">حاضر</span>' : '<span class="pill sick">متخلف: '+ (att.reason||'-') +'</span>'}</span>
+        ${att.attended? (exited? `<span class="pill leave">خرج: ${exited.reason} (${exited.date})</span>` : `<button class="btn-sm" data-exit="${pid}">🚪 تسجيل خروج</button>`) : ""}
+      </div>`;
+    }).join("");
+    container.innerHTML = rows;
+    container.querySelectorAll("[data-exit]").forEach(b=>b.addEventListener("click", ()=>{
+      const pid = parseInt(b.dataset.exit);
+      const reason = prompt("سبب الخروج من النوبة:"); if(!reason) return;
+      if(!sh.exits) sh.exits={};
+      sh.exits[pid] = {reason, date:todayStr()};
+      const p = state.personnel.find(x=>x.id===pid);
+      if(p){ if(!p.history) p.history=[]; p.history.push({date:todayStr(), type:"مناوبة", detail:`خرج من النوبة "${d.name}" (${shiftKey==='shift1'?'النوبة الأولى':'النوبة الثانية'}) - السبب: ${reason}`}); }
+      save(); renderAttendedList(sh, containerId, shiftKey); renderDuties();
+      toast("تم تسجيل الخروج");
+    }));
+  }
+  renderAttendedList(d.shift1,"s1attendedList","shift1");
+  renderAttendedList(d.shift2,"s2attendedList","shift2");
+  document.getElementById("modalCancel").addEventListener("click", closeModal);
+  document.getElementById("modalOverlay").addEventListener("click", e=>{ if(e.target.id==="modalOverlay") closeModal(); });
+  document.getElementById("s1cand").addEventListener("click", ()=>openDutyCandidatesModal(d,"shift1", ()=>openDutyManageModal(d)));
+  document.getElementById("s2cand").addEventListener("click", ()=>openDutyCandidatesModal(d,"shift2", ()=>openDutyManageModal(d)));
+  document.getElementById("s1att").addEventListener("click", ()=>openDutyAttendanceModal(d,"shift1", ()=>openDutyManageModal(d)));
+  document.getElementById("s2att").addEventListener("click", ()=>openDutyAttendanceModal(d,"shift2", ()=>openDutyManageModal(d)));
+}
+function openDutyCandidatesModal(d, shiftKey, onDone){
+  const sh = d[shiftKey];
+  const selected = new Set(sh.candidates||[]);
+  function conflictBadge(p){ const conflict = personActiveTraining(p.id, d.startDate, d.endDate); return conflict? `<span class="warn-badge" title="لديه دورة (${conflict.name}) ضمن هذه الفترة">⚠️ دورة</span>` : ""; }
+  function rowsHtml(filter){
+    return activePersonnel().filter(p=> !filter || (p.name+" "+p.id+" "+p.rank).toLowerCase().includes(filter.toLowerCase()))
+      .map(p=>`<label class="cand-row ${selected.has(p.id)?'cand-checked':''}" data-pid="${p.id}"><input type="checkbox" ${selected.has(p.id)?"checked":""}> ${p.name} — ${p.rank} (#${p.id}) ${conflictBadge(p)}</label>`).join("");
+  }
+  document.getElementById("modalRoot").innerHTML = `<div class="overlay" id="modalOverlay"><div class="modal modal-lg">
+    <h3>تحديد أفراد ${shiftKey==='shift1'?'النوبة الأولى':'النوبة الثانية'} - ${d.name}</h3>
+    <input type="text" id="dcSearch" placeholder="🔍 بحث..." style="width:100%;margin-bottom:9px;padding:8px 9px;background:var(--navy-900);border:1px solid var(--line);color:var(--text);border-radius:8px;">
+    <div id="dcList" class="cand-list">${rowsHtml("")}</div>
+    <p class="note">المحددون حاليًا: <b id="dcCount">${selected.size}</b></p>
+    <div class="modal-actions"><button class="btn ghost" id="modalCancel">إلغاء</button><button class="btn gold" id="modalSave">حفظ</button></div>
+  </div></div>`;
+  const listEl = document.getElementById("dcList");
+  function wire(){ listEl.querySelectorAll(".cand-row").forEach(row=>{ row.querySelector("input").addEventListener("change", e=>{ const pid=parseInt(row.dataset.pid); if(e.target.checked) selected.add(pid); else selected.delete(pid); row.classList.toggle("cand-checked", e.target.checked); document.getElementById("dcCount").textContent = selected.size; }); }); }
+  wire();
+  document.getElementById("dcSearch").addEventListener("input", e=>{ listEl.innerHTML = rowsHtml(e.target.value); wire(); });
+  document.getElementById("modalCancel").addEventListener("click", ()=>{ closeModal(); onDone(); });
+  document.getElementById("modalOverlay").addEventListener("click", e=>{ if(e.target.id==="modalOverlay"){ closeModal(); onDone(); } });
+  document.getElementById("modalSave").addEventListener("click", ()=>{
+    sh.candidates = Array.from(selected);
+    Object.keys(sh.attendance||{}).forEach(pid=>{ if(!selected.has(parseInt(pid))) delete sh.attendance[pid]; });
+    save(); closeModal(); renderDuties(); toast("تم الحفظ"); onDone();
+  });
+}
+function openDutyAttendanceModal(d, shiftKey, onDone){
+  const sh = d[shiftKey];
+  if(!sh.candidates || sh.candidates.length===0){ alert("حدد أفراد هذه النوبة أولاً"); return; }
+  const oldAtt = sh.attendance || {};
+  const work = {}; sh.candidates.forEach(pid=>{ work[pid] = oldAtt[pid] ? {...oldAtt[pid]} : {attended:true, reason:""}; });
+  function personLabel(pid){ const p = state.personnel.find(x=>x.id===pid); return p? `${p.name} (#${p.id})` : `#${pid}`; }
+  function rowsHtml(filter){
+    return sh.candidates.filter(pid=>{ if(!filter) return true; const p=state.personnel.find(x=>x.id===pid); return p && (p.name+" "+p.id).toLowerCase().includes(filter.toLowerCase()); })
+      .map(pid=>{ const s=work[pid]; return `<div class="att-row ${s.attended?'':'absent'}" data-pid="${pid}"><span class="nm"><input type="checkbox" data-role="att" ${s.attended?"checked":""}> ${personLabel(pid)}</span><input type="text" data-role="reason" placeholder="سبب عدم الالتحاق..." value="${escapeHtml(s.reason||"")}" style="display:${s.attended?"none":"block"};"></div>`; }).join("");
+  }
+  document.getElementById("modalRoot").innerHTML = `<div class="overlay" id="modalOverlay"><div class="modal modal-lg">
+    <h3>تسجيل حضور ${shiftKey==='shift1'?'النوبة الأولى':'النوبة الثانية'} - ${d.name}</h3>
+    <input type="text" id="daSearch" placeholder="🔍 بحث..." style="width:100%;margin-bottom:9px;padding:8px 9px;background:var(--navy-900);border:1px solid var(--line);color:var(--text);border-radius:8px;">
+    <div id="daList" class="cand-list">${rowsHtml("")}</div>
+    <div class="modal-actions"><button class="btn ghost" id="modalCancel">إلغاء</button><button class="btn gold" id="modalSave">حفظ الحضور</button></div>
+  </div></div>`;
+  const listEl = document.getElementById("daList");
+  function wire(){ listEl.querySelectorAll(".att-row").forEach(row=>{ const pid=parseInt(row.dataset.pid); const cb=row.querySelector('[data-role="att"]'); const rin=row.querySelector('[data-role="reason"]');
+    cb.addEventListener("change", ()=>{ work[pid].attended=cb.checked; row.classList.toggle("absent", !cb.checked); rin.style.display = cb.checked?"none":"block"; });
+    rin.addEventListener("input", ()=>{ work[pid].reason = rin.value; }); }); }
+  wire();
+  document.getElementById("daSearch").addEventListener("input", e=>{ listEl.innerHTML = rowsHtml(e.target.value); wire(); });
+  document.getElementById("modalCancel").addEventListener("click", ()=>{ closeModal(); onDone(); });
+  document.getElementById("modalOverlay").addEventListener("click", e=>{ if(e.target.id==="modalOverlay"){ closeModal(); onDone(); } });
+  document.getElementById("modalSave").addEventListener("click", ()=>{
+    const missing = sh.candidates.filter(pid=> !work[pid].attended && !work[pid].reason.trim());
+    if(missing.length){ alert("الرجاء إدخال سبب عدم الالتحاق لـ: "+missing.map(personLabel).join("، ")); return; }
+    sh.candidates.forEach(pid=>{
+      const p = state.personnel.find(x=>x.id===pid); const was=oldAtt[pid]; const now=work[pid]; if(!p) return;
+      if(!was || was.attended!==now.attended){
+        if(!p.history) p.history=[];
+        if(now.attended) p.history.push({date:todayStr(), type:"مناوبة", detail:`التحق بالنوبة "${d.name}" (${shiftKey==='shift1'?'النوبة الأولى':'النوبة الثانية'})`});
+        else p.history.push({date:todayStr(), type:"مناوبة", detail:`لم يلتحق بالنوبة "${d.name}" (${shiftKey==='shift1'?'النوبة الأولى':'النوبة الثانية'}) - السبب: ${now.reason}`});
+      }
+    });
+    sh.attendance = work; sh.finalizedDate = todayStr();
+    save();
+    const absentPids = sh.candidates.filter(pid=> !work[pid].attended);
+    closeModal(); renderDuties(); renderDashboard();
+    if(shiftKey==="shift1" && absentPids.length){
+      const names = absentPids.map(personLabel).join("، ");
+      if(confirm(`لم يلتحق ${absentPids.length} فرد بالنوبة الأولى (${names}).\nهل تريد اقتراحهم تلقائيًا للنوبة الثانية؟`)){
+        absentPids.forEach(pid=>{ if(!d.shift2.candidates.includes(pid)) d.shift2.candidates.push(pid); });
+        save(); renderDuties(); toast("تمت إضافتهم كمرشحين بالنوبة الثانية");
+      }
+    }
+    toast("تم حفظ الحضور بنجاح");
+    onDone();
+  });
+}
+
+/* ======================= CALENDAR ======================= */
+function renderCalendar(){
+  const now = new Date(); const y=now.getFullYear(), m=now.getMonth();
+  document.getElementById("calTitle").textContent = now.toLocaleDateString('ar-EG',{month:'long',year:'numeric'});
+  const first = new Date(y,m,1); const startDay = first.getDay(); const daysInMonth = new Date(y,m+1,0).getDate();
+  const dayNames = ["أحد","اثنين","ثلاثاء","أربعاء","خميس","جمعة","سبت"];
+  let html = dayNames.map(dn=>`<div style="color:var(--muted);font-weight:700;">${dn}</div>`).join("");
+  for(let i=0;i<startDay;i++) html += `<div></div>`;
+  for(let d=1; d<=daysInMonth; d++){
+    const dateStr = `${y}-${pad(m+1)}-${pad(d)}`;
+    const isToday = d===now.getDate();
+    const dutyMatches = state.duties.filter(du=> dateStr>=du.startDate && dateStr<=du.endDate);
+    const trainMatches = state.trainings.filter(t=> t.date===dateStr);
+    let marks = (dutyMatches.length?"🛡️":"") + (trainMatches.length?"🎓":"");
+    const titleTxt = [...dutyMatches.map(x=>x.name), ...trainMatches.map(x=>x.name)].join(", ");
+    const border = dutyMatches.length? "border:2px solid var(--gold);" : "border:1px solid var(--line);";
+    html += `<div title="${titleTxt}" style="padding:7px 0;border-radius:8px;${isToday?'background:var(--gold);color:#1a1300;font-weight:800;':'background:var(--navy-900);'+border}">
+      ${d}${marks?`<div style="font-size:9px;">${marks}</div>`:""}</div>`;
+  }
+  document.getElementById("calGrid").innerHTML = html;
+}
+
+/* ======================= LOGS ======================= */
+function renderLogs(){
+  const edits = [...state.editLog].sort((a,b)=> new Date(b.date)-new Date(a.date));
+  document.getElementById("editLogBody").innerHTML = edits.length? edits.map(e=>`<tr><td>${e.date}</td><td>${e.personName} (#${e.personId})</td><td>${e.reason}</td><td>${e.detail}</td></tr>`).join("") : `<tr><td colspan="4" style="text-align:center;color:var(--muted);">لا يوجد تعديلات مسجلة</td></tr>`;
+  const absences = [];
+  state.trainings.forEach(t=>{ Object.entries(t.attendance||{}).forEach(([pid,a])=>{ if(!a.attended){ const p=state.personnel.find(x=>x.id===parseInt(pid)); absences.push({training:t.name, person:p?`${p.name} (#${p.id})`:`#${pid}`, reason:a.reason||"-", date:t.finalizedDate||"-"}); } }); });
+  document.getElementById("absenceLogBody").innerHTML = absences.length? absences.map(a=>`<tr><td>${a.training}</td><td>${a.person}</td><td>${a.reason}</td><td>${a.date}</td></tr>`).join("") : `<tr><td colspan="4" style="text-align:center;color:var(--muted);">لا يوجد حالات عدم التحاق مسجلة</td></tr>`;
+  const dabs = [];
+  state.duties.forEach(d=>{ ["shift1","shift2"].forEach(sk=>{ Object.entries(d[sk].attendance||{}).forEach(([pid,a])=>{ if(!a.attended){ const p=state.personnel.find(x=>x.id===parseInt(pid)); dabs.push({duty:d.name, shift:sk==='shift1'?'الأولى':'الثانية', person:p?`${p.name} (#${p.id})`:`#${pid}`, reason:a.reason||"-"}); } }); }); });
+  document.getElementById("dutyAbsenceLogBody").innerHTML = dabs.length? dabs.map(a=>`<tr><td>${a.duty}</td><td>${a.shift}</td><td>${a.person}</td><td>${a.reason}</td></tr>`).join("") : `<tr><td colspan="4" style="text-align:center;color:var(--muted);">لا يوجد حالات عدم التحاق مسجلة</td></tr>`;
+}
+
+/* ======================= REPORTS (top-down, org-tree + date range) ======================= */
+let repDrill = [];
+function renderReports(){
+  const sel = document.getElementById("repCat");
+  sel.innerHTML = PERSON_CATEGORIES.filter(c=>!c.hidden).map(c=>`<option value="${c.id}">${c.label}</option>`).join("");
+  repDrill = [];
+  document.getElementById("repOutput").innerHTML = "";
+  renderRepBody();
+}
+document.getElementById("repGenBtn").addEventListener("click", generateNodeReport);
+document.getElementById("repCat").addEventListener("change", renderRepBody);
+function repCurrentNode(){ return repDrill.length? nodeById(repDrill[repDrill.length-1]) : null; }
+function renderRepCrumbs(){
+  const cat = findPersonCat(document.getElementById("repCat").value);
+  let html = `<span class="${repDrill.length===0?'active':''}" data-idx="-1">${cat.label}</span>`;
+  repDrill.forEach((id,i)=>{ const n=nodeById(id); html += `<span class="sep">/</span><span class="${i===repDrill.length-1?'active':''}" data-idx="${i}">${n?n.name:'-'}</span>`; });
+  document.getElementById("repCrumbs").innerHTML = html;
+  document.querySelectorAll("#repCrumbs [data-idx]").forEach(el=>el.addEventListener("click", ()=>{ const idx=parseInt(el.dataset.idx); repDrill = idx<0? [] : repDrill.slice(0, idx+1); renderRepBody(); }));
+}
+function renderRepBody(){
+  renderRepCrumbs();
+  const cat = findPersonCat(document.getElementById("repCat").value);
+  const node = repCurrentNode();
+  const items = activePersonnel().filter(cat.test).filter(p=> !node || isWithinSubtree(node, p.orgNodeId));
+  const body = document.getElementById("repBody");
+  const childNodes = node? node.children : state.orgTree;
+  if(childNodes.length===0){ body.innerHTML = `<p class="note">هذا فرع نهائي (${items.length} فرد) — اضغط "توليد تقرير هذا المستوى" أعلاه.</p>`; return; }
+  let html = `<div class="node-grid">`;
+  childNodes.forEach(child=>{
+    const arr = activePersonnel().filter(cat.test).filter(p=>isWithinSubtree(child, p.orgNodeId));
+    const goodN = arr.filter(p=>p.readiness==="جاهز").length;
+    const pct = arr.length? Math.round(goodN/arr.length*100):0;
+    html += `<div class="node-card ${nodeColorClass(pct)}" data-node="${child.id}"><div class="np">${pct}%</div><div class="nn">${child.name}</div><div class="nc">${arr.length} عنصر</div></div>`;
+  });
+  html += `</div>`; body.innerHTML = html;
+  body.querySelectorAll("[data-node]").forEach(el=>el.addEventListener("click", ()=>{ repDrill.push(el.dataset.node); renderRepBody(); }));
+}
+function generateNodeReport(){
+  const cat = findPersonCat(document.getElementById("repCat").value);
+  const node = repCurrentNode();
+  const dateFrom = document.getElementById("repFrom").value || "0000-01-01";
+  const dateTo = document.getElementById("repTo").value || "9999-12-31";
+  const scopeLabel = node? pathLabel(node.id) : cat.label;
+  const inScope = p => (!node || isWithinSubtree(node, p.orgNodeId)) && cat.test(p);
+  const people = activePersonnel().filter(inScope);
+  const readinessCounts = {"جاهز":0,"غير جاهز":0,"متخلف":0};
+  people.forEach(p=>readinessCounts[p.readiness]++);
+
+  const dutyRows = [];
+  state.duties.filter(d=> d.endDate>=dateFrom && d.startDate<=dateTo).forEach(d=>{
+    ["shift1","shift2"].forEach(sk=>{
+      const sh = d[sk];
+      const members = sh.candidates.filter(pid=>{ const p=state.personnel.find(x=>x.id===pid); return p && inScope(p); });
+      if(members.length){
+        const attended = members.filter(pid=> sh.attendance[pid] && sh.attendance[pid].attended).length;
+        dutyRows.push([d.name, sk==='shift1'?'الأولى':'الثانية', `${d.startDate} → ${d.endDate}`, members.length, sh.finalizedDate? attended:"-", sh.finalizedDate? (members.length-attended):"-"]);
+      }
+    });
+  });
+  const trainingRows = [];
+  state.trainings.filter(t=> t.date>=dateFrom && t.date<=dateTo).forEach(t=>{
+    const members = (t.candidates||[]).filter(pid=>{ const p=state.personnel.find(x=>x.id===pid); return p && inScope(p); });
+    if(members.length){
+      const attended = members.filter(pid=> t.attendance[pid] && t.attendance[pid].attended).length;
+      trainingRows.push([t.name, t.date, members.length, t.finalizedDate? attended:"-", t.finalizedDate? (members.length-attended):"-"]);
+    }
+  });
+  const peopleRows = people.map(p=>[p.name,p.rank,p.readiness,p.status]);
+
+  const html = `
+  <div class="panel" style="margin-bottom:12px;">
+    <h3>تقرير: ${scopeLabel} <span class="tag">${people.length} فرد</span></h3>
+    <p class="note">الفترة: ${dateFrom==="0000-01-01"?"كل الفترات":dateFrom} → ${dateTo==="9999-12-31"?"الآن":dateTo}</p>
+    <p>جاهز: <b>${readinessCounts["جاهز"]}</b> &nbsp; غير جاهز: <b>${readinessCounts["غير جاهز"]}</b> &nbsp; متخلف: <b>${readinessCounts["متخلف"]}</b></p>
+    <h4 style="color:var(--gold-l);margin:12px 0 6px;">النوبات ضمن الفترة</h4>
+    <div class="table-wrap"><table><thead><tr><th>النوبة</th><th>الشِفت</th><th>الفترة</th><th>الأفراد</th><th>حاضر</th><th>متخلف</th></tr></thead>
+    <tbody>${dutyRows.length? dutyRows.map(r=>`<tr>${r.map(v=>`<td>${v}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="6" style="text-align:center;color:var(--muted);">لا يوجد</td></tr>`}</tbody></table></div>
+    <h4 style="color:var(--gold-l);margin:12px 0 6px;">الدورات ضمن الفترة</h4>
+    <div class="table-wrap"><table><thead><tr><th>الدورة</th><th>التاريخ</th><th>الأفراد</th><th>حاضر</th><th>متخلف</th></tr></thead>
+    <tbody>${trainingRows.length? trainingRows.map(r=>`<tr>${r.map(v=>`<td>${v}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="5" style="text-align:center;color:var(--muted);">لا يوجد</td></tr>`}</tbody></table></div>
+    <div class="cfg-row" style="border:none;flex-wrap:wrap;gap:14px;margin-top:10px;">
+      <span class="note" style="margin:0;">تضمين بالتصدير: </span>
+      <label><input type="checkbox" id="repIncPeople" checked> الأفراد</label>
+      <label><input type="checkbox" id="repIncDuties" checked> النوبات</label>
+      <label><input type="checkbox" id="repIncTrainings" checked> الدورات</label>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn-sm" id="repExportPdf">📄 تصدير PDF</button>
+      <button class="btn-sm" id="repExportCsv">⬇️ تصدير Excel</button>
+    </div>
+  </div>`;
+  document.getElementById("repOutput").innerHTML = html;
+  function buildSections(){
+    const secs = [];
+    if(document.getElementById("repIncPeople").checked) secs.push({heading:"الأفراد", header:["الاسم","الرتبة","الجاهزية","الحالة"], rows: peopleRows});
+    if(document.getElementById("repIncDuties").checked) secs.push({heading:"النوبات ضمن الفترة", header:["النوبة","الشِفت","الفترة","الأفراد","حاضر","متخلف"], rows: dutyRows});
+    if(document.getElementById("repIncTrainings").checked) secs.push({heading:"الدورات ضمن الفترة", header:["الدورة","التاريخ","الأفراد","حاضر","متخلف"], rows: trainingRows});
+    return secs;
+  }
+  document.getElementById("repExportPdf").addEventListener("click", ()=>{
+    const secs = buildSections();
+    if(secs.length===0){ alert("اختر قسمًا واحدًا على الأقل للتصدير"); return; }
+    firePrint(buildPrintableSections(`تقرير - ${scopeLabel}`, secs));
+  });
+  document.getElementById("repExportCsv").addEventListener("click", ()=>{
+    const secs = buildSections();
+    if(secs.length===0){ alert("اختر قسمًا واحدًا على الأقل للتصدير"); return; }
+    exportTableAsExcel(`تقرير_${scopeLabel}`, secs);
+  });
+}
+
+/* ======================= SETTINGS ======================= */
+function renderSettings(){
+  document.getElementById("setOrgName").value = state.org.name;
+  document.getElementById("setCmdName").value = state.org.cmd;
+  renderDashConfig(); renderCustomFields(); renderOrgEditor(); renderSplashSettings();
+}
+document.getElementById("saveSettingsBtn").addEventListener("click", ()=>{
+  state.org.name = document.getElementById("setOrgName").value.trim() || state.org.name;
+  state.org.cmd = document.getElementById("setCmdName").value.trim() || state.org.cmd;
+  save(); renderDashboard(); toast("تم حفظ الإعدادات");
+});
+
+/* ---- Splash screen settings ---- */
+let pendingSplashImage = null;
+function renderSplashSettings(){
+  const cfg = state.splash || defaultSplash();
+  document.getElementById("splashTextInput").value = cfg.welcomeText;
+  document.getElementById("splashSecInput").value = cfg.durationSeconds;
+  pendingSplashImage = cfg.imageDataUrl;
+  const prev = document.getElementById("splashPreviewWrap");
+  prev.innerHTML = cfg.imageDataUrl? `<img src="${cfg.imageDataUrl}" style="max-width:120px;max-height:120px;border-radius:8px;border:1px solid var(--line);">` : `<p class="note">لا توجد صورة مخصصة — سيظهر الشعار الافتراضي.</p>`;
+}
+document.getElementById("splashImgInput").addEventListener("change", (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{ pendingSplashImage = reader.result; document.getElementById("splashPreviewWrap").innerHTML = `<img src="${pendingSplashImage}" style="max-width:120px;max-height:120px;border-radius:8px;border:1px solid var(--line);">`; };
+  reader.readAsDataURL(file);
+});
+document.getElementById("splashSaveBtn").addEventListener("click", ()=>{
+  state.splash = {
+    imageDataUrl: pendingSplashImage,
+    welcomeText: document.getElementById("splashTextInput").value.trim() || "أهلا بك",
+    durationSeconds: Math.max(1, parseInt(document.getElementById("splashSecInput").value)||3)
+  };
+  save(); toast("تم حفظ إعدادات شاشة الترحيب — ستظهر بالشكل الجديد بالمرة القادمة");
+});
+document.getElementById("splashResetBtn").addEventListener("click", ()=>{
+  state.splash = defaultSplash(); save(); renderSplashSettings();
+  toast("تمت الاستعادة للوضع الافتراضي");
+});
+document.getElementById("backupBtn").addEventListener("click", ()=>{ downloadFile("hr_backup.json", JSON.stringify(state,null,2), "application/json"); toast("تم إنشاء نسخة احتياطية"); });
+document.getElementById("restoreBtn").addEventListener("click", triggerRestore);
+
+/* ---- Dashboard visibility config ---- */
+function renderDashConfig(){
+  const cfg = state.dashboardConfig;
+  let html = `<div class="cfg-group"><h4>كروت الفئات</h4>` + PERSON_CATEGORIES.filter(c=>!c.hidden).map(c=>`
+    <div class="cfg-row"><input type="checkbox" data-cfgcat="${c.id}" ${cfg.cats[c.id]!==false?"checked":""}> ${c.icon} ${c.label}</div>`).join("") + `</div>`;
+  html += `<div class="cfg-group"><h4>الأقسام الديناميكية</h4>` + state.modules.map(m=>`
+    <div class="cfg-row"><input type="checkbox" data-cfgmod="${m.id}" ${cfg.moduleVisibility[m.id]!==false?"checked":""}> ${m.icon} ${m.name}</div>`).join("") + `</div>`;
+  html += `<div class="cfg-group"><h4>أقسام اللوحة</h4>
+    <div class="cfg-row"><input type="checkbox" data-cfgflag="showExplorer" ${cfg.showExplorer?"checked":""}> استكشاف الجاهزية (الأب/الابن)</div>
+    <div class="cfg-row"><input type="checkbox" data-cfgflag="showDonut" ${cfg.showDonut?"checked":""}> المخطط الدائري (توزيع الرتب)</div>
+    <div class="cfg-row"><input type="checkbox" data-cfgflag="showLineChart" ${cfg.showLineChart?"checked":""}> مخطط الالتحاق الشهري</div>
+    <div class="cfg-row"><input type="checkbox" data-cfgflag="showBottomCards" ${cfg.showBottomCards?"checked":""}> كروت (التدريب / الحضور / الصحة / الإجازات / الترقيات)</div>
+    <div class="cfg-row"><input type="checkbox" data-cfgflag="showAlerts" ${cfg.showAlerts?"checked":""}> لوحة التنبيهات</div>
+    <div class="cfg-row"><input type="checkbox" data-cfgflag="showQuickActions" ${cfg.showQuickActions?"checked":""}> الإجراءات السريعة</div>
+  </div>`;
+  document.getElementById("dashConfigBody").innerHTML = html;
+  document.querySelectorAll("[data-cfgcat]").forEach(cb=>cb.addEventListener("change", ()=>{ cfg.cats[cb.dataset.cfgcat]=cb.checked; save(); renderDashboard(); }));
+  document.querySelectorAll("[data-cfgmod]").forEach(cb=>cb.addEventListener("change", ()=>{ cfg.moduleVisibility[cb.dataset.cfgmod]=cb.checked; save(); renderDashboard(); }));
+  document.querySelectorAll("[data-cfgflag]").forEach(cb=>cb.addEventListener("change", ()=>{ cfg[cb.dataset.cfgflag]=cb.checked; save(); renderDashboard(); }));
+}
+
+/* ---- Custom fields ---- */
+document.getElementById("addFieldBtn").addEventListener("click", ()=>{
+  const label = prompt("اسم الحقل الجديد (مثال: العمر، رقم الهاتف):"); if(!label || !label.trim()) return;
+  const type = (prompt("نوع الحقل: اكتب text أو number أو date","text")||"text").trim();
+  const required = confirm("هل هذا الحقل إلزامي؟ (موافق = نعم، إلغاء = لا)");
+  state.customFields.push({id:"cf"+Date.now(), label:label.trim(), type: ["text","number","date"].includes(type)?type:"text", required});
+  save(); renderCustomFields();
+  toast("تمت إضافة الحقل — سيظهر في استمارة الأفراد");
+});
+function renderCustomFields(){
+  const c = document.getElementById("customFieldsBody");
+  c.innerHTML = state.customFields.length? state.customFields.map((f,i)=>`
+    <div class="org-node-row"><b>${f.label}</b><span class="note">(${f.type}${f.required?" - إلزامي":" - اختياري"})</span>
+      <button class="btn-sm" data-toggleReq="${i}">${f.required?"جعله اختياريًا":"جعله إلزاميًا"}</button>
+      <button class="btn-sm" data-delField="${i}">🗑️ حذف الحقل</button></div>`).join("") : `<p class="note">لا توجد حقول مخصصة بعد.</p>`;
+  c.querySelectorAll("[data-toggleReq]").forEach(b=>b.addEventListener("click", ()=>{ const f=state.customFields[parseInt(b.dataset.toggleReq)]; f.required=!f.required; save(); renderCustomFields(); }));
+  c.querySelectorAll("[data-delField]").forEach(b=>b.addEventListener("click", ()=>{ if(confirm("حذف هذا الحقل؟ ستفقد بياناته من كل الأفراد.")){ state.customFields.splice(parseInt(b.dataset.delField),1); save(); renderCustomFields(); } }));
+}
+
+/* ---- Org tree editor ---- */
+function renderOrgEditorNode(node, depth){
+  const cnt = countLinkedRecords(node);
+  return `<div class="org-node" style="margin-right:${depth*15}px;"><div class="org-node-row"><b>${node.name}</b><span class="note">(${cnt} سجل مرتبط)</span>
+    <button class="btn-sm" data-add-child="${node.id}">➕ فرع فرعي</button><button class="btn-sm" data-rename="${node.id}">✏️ تسمية</button><button class="btn-sm" data-del-node="${node.id}">🗑️ حذف</button></div>
+    ${node.children.map(c=>renderOrgEditorNode(c, depth+1)).join("")}</div>`;
+}
+function renderOrgEditor(){
+  const container = document.getElementById("orgEditorBody");
+  container.innerHTML = state.orgTree.map(n=>renderOrgEditorNode(n,0)).join("") || `<p class="note">لا توجد عناصر بعد.</p>`;
+  container.querySelectorAll("[data-add-child]").forEach(b=>b.addEventListener("click", ()=>{ const name=prompt("اسم الفرع الفرعي الجديد:"); if(name&&name.trim()){ nodeById(b.dataset.addChild).children.push(makeNode(name.trim())); save(); renderOrgEditor(); toast("تمت الإضافة"); } }));
+  container.querySelectorAll("[data-rename]").forEach(b=>b.addEventListener("click", ()=>{ const node=nodeById(b.dataset.rename); const name=prompt("الاسم الجديد:", node.name); if(name&&name.trim()){ node.name=name.trim(); save(); renderOrgEditor(); renderDashboard(); toast("تم التحديث"); } }));
+  container.querySelectorAll("[data-del-node]").forEach(b=>b.addEventListener("click", ()=>{ const node=nodeById(b.dataset.delNode); if(countLinkedRecords(node)>0){ alert("لا يمكن الحذف — يوجد سجلات مرتبطة بهذا الفرع أو فروعه."); return; } if(!confirm(`حذف "${node.name}" نهائيًا؟`)) return; const arr=findParentArray(node.id); if(arr){ arr.splice(arr.findIndex(n=>n.id===node.id),1); save(); renderOrgEditor(); toast("تم الحذف"); } }));
+}
+document.getElementById("addRootNodeBtn").addEventListener("click", ()=>{ const name=prompt("اسم العنصر الرئيسي الجديد:"); if(name&&name.trim()){ state.orgTree.push(makeNode(name.trim())); save(); renderOrgEditor(); toast("تمت الإضافة"); } });
+
+/* ---- Password change ---- */
+document.getElementById("pwChangeBtn").addEventListener("click", ()=>{
+  const cur = document.getElementById("pwCurrent").value; const nw = document.getElementById("pwNew").value;
+  if(cur !== state.deletePassword){ alert("كلمة السر الحالية غير صحيحة"); return; }
+  if(!nw || nw.length<3){ alert("كلمة سر جديدة غير صالحة"); return; }
+  state.deletePassword = nw; save();
+  document.getElementById("pwCurrent").value=""; document.getElementById("pwNew").value="";
+  toast("تم تغيير كلمة السر بنجاح");
+});
+
+/* ---- Danger zone ---- */
+document.getElementById("unlockPersonDelete").addEventListener("click", ()=>{
+  const pass = prompt("أدخل كلمة السر لفتح قسم حذف الأفراد:");
+  if(pass!==state.deletePassword){ if(pass!==null) alert("كلمة سر خاطئة"); return; }
+  document.getElementById("personDeleteZone").style.display = "block"; renderPersonDeleteZone();
+});
+function renderPersonDeleteZone(){
+  const zone = document.getElementById("personDeleteZone");
+  zone.innerHTML = `<input type="text" id="pdSearch" placeholder="🔍 بحث..." style="width:100%;margin:8px 0;padding:8px;background:var(--navy-900);border:1px solid var(--line);color:var(--text);border-radius:8px;">
+  <div class="table-wrap" style="max-height:280px;overflow-y:auto;"><table><thead><tr><th>الاسم</th><th>الرتبة</th><th>الحالة</th><th></th></tr></thead><tbody id="pdBody"></tbody></table></div>`;
+  function renderRows(filter){
+    const list = state.personnel.filter(p=> !filter || (p.name+" "+p.id+" "+p.rank).toLowerCase().includes(filter.toLowerCase()));
+    document.getElementById("pdBody").innerHTML = list.map(p=>`<tr><td>${p.name} (#${p.id})</td><td>${p.rank}</td><td>${p.adminStatus||"نشط"}</td><td><button class="btn danger" data-harddel="${p.id}" style="padding:4px 10px;font-size:11px;">حذف نهائي</button></td></tr>`).join("");
+    document.querySelectorAll("[data-harddel]").forEach(b=>b.addEventListener("click", ()=>{ const pid=parseInt(b.dataset.harddel); const p=state.personnel.find(x=>x.id===pid); if(confirm(`حذف "${p.name}" نهائيًا؟ هذا الإجراء لا رجعة عنه.`)){ state.personnel=state.personnel.filter(x=>x.id!==pid); save(); renderPersonDeleteZone(); renderPersonnel(); renderArchive(); renderDashboard(); toast("تم الحذف النهائي"); } }));
+  }
+  renderRows(""); document.getElementById("pdSearch").addEventListener("input", e=>renderRows(e.target.value));
+}
+document.getElementById("unlockTrainDelete").addEventListener("click", ()=>{
+  const pass = prompt("أدخل كلمة السر لفتح قسم حذف الدورات:");
+  if(pass!==state.deletePassword){ if(pass!==null) alert("كلمة سر خاطئة"); return; }
+  document.getElementById("trainDeleteZone").style.display = "block"; renderTrainDeleteZone();
+});
+function renderTrainDeleteZone(){
+  const zone = document.getElementById("trainDeleteZone");
+  zone.innerHTML = `<div class="table-wrap" style="max-height:280px;overflow-y:auto;"><table><thead><tr><th>الدورة</th><th>الحالة</th><th></th></tr></thead><tbody id="tdBody"></tbody></table></div>`;
+  document.getElementById("tdBody").innerHTML = state.trainings.map(t=>`<tr><td>${t.name}</td><td>${t.status}</td><td><button class="btn danger" data-htdel="${t.id}" style="padding:4px 10px;font-size:11px;">حذف نهائي</button></td></tr>`).join("");
+  document.querySelectorAll("[data-htdel]").forEach(b=>b.addEventListener("click", ()=>{ const tid=parseInt(b.dataset.htdel); const t=state.trainings.find(x=>x.id===tid); if(confirm(`حذف دورة "${t.name}" نهائيًا؟`)){ state.trainings=state.trainings.filter(x=>x.id!==tid); save(); renderTrainDeleteZone(); renderTraining(); renderDashboard(); toast("تم الحذف النهائي"); } }));
+}
+
+/* ======================= QUICK ACTIONS ======================= */
+document.querySelectorAll(".qa").forEach(q=>q.addEventListener("click", ()=>{
+  const act = q.dataset.act;
+  if(act==="search"){ goto("personnel"); document.getElementById("pSearch").focus(); }
+  else if(act==="report"){ downloadReport(); }
+  else if(act==="print"){ window.print(); }
+  else if(act==="csv"){ exportPersonnelCSV(); }
+  else if(act==="calendar"){ goto("duties"); }
+}));
+function downloadReport(){
+  const s = { total: activePersonnel().length, officers: activePersonnel().filter(p=>OFFICER_RANKS.includes(p.rank)).length, ncos: activePersonnel().filter(p=>NCO_RANKS.includes(p.rank)).length, soldiers: activePersonnel().filter(p=>SOLDIER_RANKS.includes(p.rank)).length };
+  const now = new Date().toLocaleString('ar-EG');
+  const txt = `تقرير سريع - ${state.org.name}\nتاريخ التقرير: ${now}\n----------------------------------\nإجمالي الأفراد النشطين: ${s.total}\nالضباط: ${s.officers}\nصف الضباط: ${s.ncos}\nالعناصر: ${s.soldiers}\n----------------------------------\nعدد الأقسام الديناميكية: ${state.modules.length}\n${state.modules.map(m=>`- ${m.name}: ${m.records.length} سجل`).join("\n")}\n`;
+  downloadFile("quick_report.txt", txt, "text/plain;charset=utf-8;"); toast("تم تنزيل التقرير");
+}
+function downloadFile(filename, content, mime){ const blob=new Blob([content],{type:mime}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); }
+function triggerRestore(){
+  const input = document.createElement("input"); input.type="file"; input.accept=".json";
+  input.addEventListener("change", ()=>{ const file=input.files[0]; if(!file) return; const reader=new FileReader();
+    reader.onload = () => { try{ const data=JSON.parse(reader.result); if(data.personnel && data.orgTree){ state=data; if(!state.duties) state.duties=[]; if(!state.customFields) state.customFields=[]; if(!state.dashboardConfig) state.dashboardConfig=defaultDashboardConfig(); if(!state.deletePassword) state.deletePassword="420354"; if(!state.splash) state.splash=defaultSplash(); if(!state.exportPrefs) state.exportPrefs={}; save(); renderDashboard(); toast("تم استعادة النسخة الاحتياطية"); } else alert("ملف غير صالح"); }catch(e){ alert("تعذر قراءة الملف"); } };
+    reader.readAsText(file); });
+  input.click();
+}
+
+/* ======================= RESET ======================= */
+document.getElementById("resetBtn").addEventListener("click", ()=>{
+  if(confirm("سيتم حذف جميع البيانات الحالية وإنشاء بيانات تجريبية جديدة. متابعة؟")){
+    currentCat="total"; drillPath=[];
+    state = seedData(); save(); renderDashboard(); renderPersonnel(); renderTraining();
+    toast("تمت إعادة تعيين البيانات");
+  }
+});
+
+/* ======================= TOAST ======================= */
+function toast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2600); }
+
+/* ======================= INIT ======================= */
+renderDashboard();
+</script>
+</body>
+</html>
